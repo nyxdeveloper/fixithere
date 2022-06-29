@@ -31,3 +31,18 @@ class InvalidOTC(APIException):
 class UserDoesNotExist(APIException):
     status_code = 404
     default_detail = 'Пользователь не найден'
+
+
+class SelfAppointedOffer(APIException):
+    status_code = 400
+    default_detail = 'Невозможно назначить оффер самому себе'
+
+
+class Forbidden(APIException):
+    status_code = 403
+    default_detail = 'Действие запрещено'
+
+
+class BadRequest(APIException):
+    status_code = 400
+    default_detail = 'Невалидный запрос'

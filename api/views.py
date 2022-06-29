@@ -1,4 +1,5 @@
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
+from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
@@ -9,6 +10,7 @@ from django.contrib.auth import authenticate
 
 from .aggregations import annotate_comments_likes_count
 from .aggregations import annotate_repair_offers_views_count
+from .aggregations import annotate_repair_offers_my_my_accept_free
 
 from .models import CarBrand
 from .models import Car
@@ -39,10 +41,13 @@ from .services import check_otc
 from .services import get_user_by_email
 from .services import recovery_password
 from .services import query_params_filter
+from .services import set_master
 
 from .exceptions import AuthenticationFailed
+from .exceptions import Forbidden
 
 
+# custom views
 class CustomApiView(APIView):
     pass
 
@@ -67,6 +72,7 @@ class CustomModelViewSet(ModelViewSet):
         return queryset
 
 
+# authorization
 class EmailRegistration(CustomApiView):
     def post(self, request):
         email, password, name = request.data.get('email'), request.data.get('password'), request.data.get('name')
@@ -110,6 +116,7 @@ class PasswordRecovery(CustomApiView):
         return Response({'detail': 'Перейдите по ссылке из письма для подтверждения сброса пароля'}, status=200)
 
 
+# repair offers
 class CarBrandReadOnlyViewSet(CustomReadOnlyModelViewSet):
     queryset = CarBrand.objects.all()
     serializer_class = CarBrandSerializer
@@ -199,7 +206,7 @@ class CommentMediaReadOnlyViewSet(CustomReadOnlyModelViewSet):
     filterset_key_fields = ['comment']
 
 
-class RepairOfferReadOnlyViewSet(CustomReadOnlyModelViewSet):
+class RepairOfferViewSet(CustomModelViewSet):
     queryset = RepairOffer.objects.all()
     serializer_class = RepairOfferSerializer
     pagination_class = PageNumberPagination
@@ -207,10 +214,37 @@ class RepairOfferReadOnlyViewSet(CustomReadOnlyModelViewSet):
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['title', 'description', 'categories__name']
     ordering_fields = ['created', 'private', 'views_count']
-    filterset_key_fields = ['owner', 'master', 'categories', 'private']
+    filterset_key_fields = ['owner', 'master', 'categories', 'private', 'my', 'my_accept', 'free']
     filterset_char_fields = ['title']
+
+    def is_master(self, instance):
+        return instance.master_id == self.request.user.id
+
+    def is_owner(self, instance):
+        return instance.owner_id == self.request.user.id
 
     def get_queryset(self):
         queryset = self.queryset
+        user_id = self.request.user.id  # current user id
         queryset = annotate_repair_offers_views_count(queryset)  # annotate 'views_count' variable
+        queryset = annotate_repair_offers_my_my_accept_free(queryset,
+                                                            user_id)  # annotate 'my', 'my_accept' and 'free' boolean variable
         return queryset
+
+    def perform_destroy(self, instance):
+        if not self.is_owner(instance):
+            raise Forbidden('Вы не можете удалить чужой оффер')
+        return super(RepairOfferViewSet, self).perform_destroy(instance)
+
+    def perform_update(self, serializer):
+        if not self.is_owner(self.get_object()):
+            raise Forbidden
+        return super(RepairOfferViewSet, self).perform_update(serializer)
+
+    @action(methods=['post'], detail=True)
+    def set_master(self, request, pk):
+        instance = self.get_object()
+        if not self.is_owner(instance):
+            raise Forbidden
+        set_master(instance, request.data.get('master_id'))
+        return Response({'detail': 'Мастер именен'}, status=200)

@@ -101,6 +101,7 @@ class CommentMediaSerializer(serializers.ModelSerializer):
 
 
 class RepairOfferSerializer(serializers.ModelSerializer):
+    owner = serializers.HiddenField(default=serializers.CurrentUserDefault())
     _owner = UserProfileSerializer(read_only=True, source='owner')
     _master = UserProfileSerializer(read_only=True, source='master')
     categories = serializers.ManyRelatedField(write_only=True)

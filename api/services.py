@@ -147,4 +147,11 @@ def query_params_filter(request, queryset, key_fields, char_fields):
     return queryset
 
 
-
+def set_master(instance, master_id):
+    if master_id is None:
+        instance.master = None
+        instance.save()
+    elif User.objects.filter(role='master', id=master_id).exists():
+        instance.master_id = master_id
+        instance.save()
+    raise UserDoesNotExist('Мастер не найден')

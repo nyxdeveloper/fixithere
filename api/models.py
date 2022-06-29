@@ -7,6 +7,8 @@ from .signals import file_model_delete
 from .signals import img_model_delete
 from .signals import user_avatar_delete
 
+from .exceptions import SelfAppointedOffer
+
 import os
 
 
@@ -259,6 +261,11 @@ class RepairOffer(models.Model):
 
     def __str__(self):
         return self.title
+
+    def save(self, *args, **kwargs):
+        if self.owner_id == self.master_id:
+            raise SelfAppointedOffer
+        return super(RepairOffer, self).save(*args, **kwargs)
 
     class Meta:
         verbose_name = 'Оффер'

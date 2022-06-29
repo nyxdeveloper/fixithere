@@ -1,6 +1,9 @@
 from django.db.models import IntegerField
 from django.db.models import BooleanField
 from django.db.models import Count
+from django.db.models import Case
+from django.db.models import When
+from django.db.models import Value
 from django.db.models import Sum
 from django.db.models import OuterRef
 from django.db.models import Subquery
@@ -21,3 +24,21 @@ def annotate_chats_unread_count(queryser, user_id):
     ).filter(read=False).order_by().values('read')
     unread_count = messages.annotate(c=Count('*')).values('c')
     return queryser.annotate(unread_count=Subquery(unread_count))
+
+
+def annotate_repair_offers_my_my_accept_free(queryset, user_id):
+    return queryset.annotate(
+        my=Case(
+            When(owner_id=user_id, then=Value(True, output_field=BooleanField())),
+            default=Value(False, output_field=BooleanField())
+        ),
+        my_accept=Case(
+            When(master_id=user_id, then=Value(True, output_field=BooleanField())),
+            default=Value(False, output_field=BooleanField())
+        ),
+        free=Case(
+            When(master__isnull=False, then=Value(False, output_field=BooleanField())),
+            When(owner_id=user_id, then=Value(False, output_field=BooleanField())),
+            default=Value(True, output_field=BooleanField())
+        )
+    )
