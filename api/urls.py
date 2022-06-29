@@ -17,7 +17,7 @@ from .views import GradeReadOnlyViewSet
 from .views import GradePhotoReadOnlyViewSet
 from .views import CommentReadOnlyViewSet
 from .views import CommentMediaReadOnlyViewSet
-from .views import RepairOfferReadOnlyViewSet
+from .views import RepairOfferViewSet
 
 router = DefaultRouter()
 
@@ -29,7 +29,7 @@ router.register('grades', GradeReadOnlyViewSet)
 router.register('grade_photos', GradePhotoReadOnlyViewSet)
 router.register('comments', CommentReadOnlyViewSet)
 router.register('comments_media', CommentMediaReadOnlyViewSet)
-router.register('offers', RepairOfferReadOnlyViewSet)
+router.register('offers', RepairOfferViewSet)
 
 urlpatterns = [
     path('registration/', EmailRegistration.as_view()),
