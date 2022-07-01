@@ -3,6 +3,7 @@ __pycache__/
 */migrations/*.py
 !__init__.py
 static/
+!*collect
 media/
 build/
 dist/
