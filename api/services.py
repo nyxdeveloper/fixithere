@@ -51,7 +51,7 @@ def validate_email(email: str):
 
 
 def validate_name(name: str):
-    return len(name.replace(' ', '')) < 2
+    return len(name.replace(' ', '')) >= 2
 
 
 def validate_password(password: str):
@@ -124,7 +124,13 @@ def send_user_approve_email(email):
     subject = 'FIXITHERE подтверждение почты'
     body = f'Перейдите по ссылке чтобы подтвердить свой аккаунт:\n{href}\n' \
            f'Если вы получили это письмо по ошибке, удалите его!'
-    send_mail(subject, body, settings.EMAIL_HOST_USER, [email], fail_silently=False)
+    send_mail(
+        subject=subject,
+        message=body,
+        from_email=settings.EMAIL_HOST_USER,
+        recipient_list=[email],
+        fail_silently=False
+    )
 
 
 def get_access_token(user, request):

@@ -7,7 +7,8 @@ class InvalidField(APIException):
 
 
 class InvalidPassword(InvalidField):
-    default_detail = 'Пароль должен содержать прописные и заглавные буквы латинского алфавита, а так же минимум один специальный символ'
+    default_detail = 'Пароль должен быть не менее 8 символов в длинну, содержать прописные и заглавные ' \
+                     'буквы латинского алфавита, а так же минимум один специальный символ'
 
 
 class InvalidEmail(InvalidField):

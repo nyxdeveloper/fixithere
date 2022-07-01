@@ -30,7 +30,7 @@ class CarSerializer(serializers.ModelSerializer):
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
-    cars = serializers.ManyRelatedField(write_only=True)
+    cars = serializers.PrimaryKeyRelatedField(write_only=True, queryset=Car.objects.all(), many=True)
     _cars = CarSerializer(many=True, read_only=True)
 
     class Meta:
@@ -104,7 +104,7 @@ class RepairOfferSerializer(serializers.ModelSerializer):
     owner = serializers.HiddenField(default=serializers.CurrentUserDefault())
     _owner = UserProfileSerializer(read_only=True, source='owner')
     _master = UserProfileSerializer(read_only=True, source='master')
-    categories = serializers.ManyRelatedField(write_only=True)
+    categories = serializers.PrimaryKeyRelatedField(many=True, queryset=RepairCategory.objects.all(), write_only=True)
     _categories = RepairCategorySerializer(read_only=True, many=True, source='categories')
     owner_grade = GradeSerializer(read_only=True)
     master_grade = GradeSerializer(read_only=True)
@@ -124,7 +124,7 @@ class RepairOfferSerializer(serializers.ModelSerializer):
 
 class ChatSerializer(serializers.ModelSerializer):
     _name = serializers.SerializerMethodField(method_name='get_name')
-    participants = serializers.ManyRelatedField(write_only=True)
+    participants = serializers.PrimaryKeyRelatedField(many=True, queryset=User.objects.all(), write_only=True)
     deleted = serializers.HiddenField(default=False)
     unread_count = serializers.IntegerField(read_only=True)
 

@@ -7,6 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.filters import SearchFilter, OrderingFilter
 
 from django.contrib.auth import authenticate
+from django.db import transaction
 
 from .aggregations import annotate_comments_likes_count
 from .aggregations import annotate_repair_offers_views_count
@@ -74,6 +75,7 @@ class CustomModelViewSet(ModelViewSet):
 
 # authorization
 class EmailRegistration(CustomApiView):
+    @transaction.atomic
     def post(self, request):
         email, password, name = request.data.get('email'), request.data.get('password'), request.data.get('name')
         validate_registration_data(email, password, name)
