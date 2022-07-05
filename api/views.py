@@ -1,9 +1,7 @@
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 from rest_framework.decorators import action
-from rest_framework.views import APIView
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
-from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.filters import SearchFilter, OrderingFilter
 
@@ -48,6 +46,8 @@ from .services import set_master
 
 from .exceptions import AuthenticationFailed
 from .exceptions import Forbidden
+
+from .paginations import StandardPagination
 
 
 # custom views
@@ -138,7 +138,7 @@ class ProfileAPIView(CustomApiView):
 class CarBrandReadOnlyViewSet(CustomReadOnlyModelViewSet):
     queryset = CarBrand.objects.all()
     serializer_class = CarBrandSerializer
-    pagination_class = PageNumberPagination
+    pagination_class = StandardPagination
     permission_classes = [IsAuthenticated]
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['name']
@@ -148,7 +148,7 @@ class CarBrandReadOnlyViewSet(CustomReadOnlyModelViewSet):
 class CarReadOnlyViewSet(CustomReadOnlyModelViewSet):
     queryset = Car.objects.all()
     serializer_class = CarSerializer
-    pagination_class = PageNumberPagination
+    pagination_class = StandardPagination
     permission_classes = [IsAuthenticated]
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['brand__name', 'model_name']
@@ -160,7 +160,7 @@ class CarReadOnlyViewSet(CustomReadOnlyModelViewSet):
 class RepairCategoryReadOnlyViewSet(CustomReadOnlyModelViewSet):
     queryset = RepairCategory.objects.all()
     serializer_class = RepairCategorySerializer
-    pagination_class = PageNumberPagination
+    pagination_class = StandardPagination
     permission_classes = [IsAuthenticated]
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['name']
@@ -170,7 +170,7 @@ class RepairCategoryReadOnlyViewSet(CustomReadOnlyModelViewSet):
 class OfferImageReadOnlyViewSet(CustomReadOnlyModelViewSet):
     queryset = OfferImage.objects.all()
     serializer_class = OfferImageSerializer
-    pagination_class = PageNumberPagination
+    pagination_class = StandardPagination
     permission_classes = [IsAuthenticated]
     filter_backends = [OrderingFilter]
     ordering_fields = ['id']
@@ -180,7 +180,7 @@ class OfferImageReadOnlyViewSet(CustomReadOnlyModelViewSet):
 class GradeReadOnlyViewSet(CustomReadOnlyModelViewSet):
     queryset = Grade.objects.all()
     serializer_class = GradeSerializer
-    pagination_class = PageNumberPagination
+    pagination_class = StandardPagination
     permission_classes = [IsAuthenticated]
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['comment']
@@ -191,7 +191,7 @@ class GradeReadOnlyViewSet(CustomReadOnlyModelViewSet):
 class GradePhotoReadOnlyViewSet(CustomReadOnlyModelViewSet):
     queryset = GradePhoto.objects.all()
     serializer_class = GradePhotoSerializer
-    pagination_class = PageNumberPagination
+    pagination_class = StandardPagination
     permission_classes = [IsAuthenticated]
     filter_backends = [OrderingFilter]
     ordering_fields = ['id']
@@ -201,7 +201,7 @@ class GradePhotoReadOnlyViewSet(CustomReadOnlyModelViewSet):
 class CommentReadOnlyViewSet(CustomReadOnlyModelViewSet):
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
-    pagination_class = PageNumberPagination
+    pagination_class = StandardPagination
     permission_classes = [IsAuthenticated]
     filter_backends = [SearchFilter, OrderingFilter]
     ordering_fields = ['created', 'users_liked_count']
@@ -217,7 +217,7 @@ class CommentReadOnlyViewSet(CustomReadOnlyModelViewSet):
 class CommentMediaReadOnlyViewSet(CustomReadOnlyModelViewSet):
     queryset = CommentMedia.objects.all()
     serializer_class = CommentMediaSerializer
-    pagination_class = PageNumberPagination
+    pagination_class = StandardPagination
     permission_classes = [IsAuthenticated]
     filter_backends = [OrderingFilter]
     ordering_fields = ['id']
@@ -227,7 +227,7 @@ class CommentMediaReadOnlyViewSet(CustomReadOnlyModelViewSet):
 class RepairOfferViewSet(CustomModelViewSet):
     queryset = RepairOffer.objects.all()
     serializer_class = RepairOfferSerializer
-    pagination_class = PageNumberPagination
+    pagination_class = StandardPagination
     permission_classes = [IsAuthenticated]
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['title', 'description', 'categories__name']
