@@ -22,7 +22,7 @@ class CarBrandSerializer(serializers.ModelSerializer):
 
 
 class CarSerializer(serializers.ModelSerializer):
-    _brand = CarBrandSerializer(read_only=True)
+    _brand = CarBrandSerializer(read_only=True, source='brand')
 
     class Meta:
         model = Car
@@ -31,7 +31,7 @@ class CarSerializer(serializers.ModelSerializer):
 
 class UserProfileSerializer(serializers.ModelSerializer):
     cars = serializers.PrimaryKeyRelatedField(write_only=True, queryset=Car.objects.all(), many=True)
-    _cars = CarSerializer(many=True, read_only=True)
+    _cars = CarSerializer(many=True, read_only=True, source='cars')
 
     class Meta:
         model = User
