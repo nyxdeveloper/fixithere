@@ -1,6 +1,7 @@
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 from rest_framework.decorators import action
 from rest_framework.views import APIView
+from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
@@ -25,6 +26,7 @@ from .models import RepairOffer
 
 from .serializers import CarBrandSerializer
 from .serializers import CarSerializer
+from .serializers import UserProfileSerializer
 from .serializers import RepairCategorySerializer
 from .serializers import OfferImageSerializer
 from .serializers import GradeSerializer
@@ -49,7 +51,7 @@ from .exceptions import Forbidden
 
 
 # custom views
-class CustomApiView(APIView):
+class CustomApiView(GenericAPIView):
     pass
 
 
@@ -116,6 +118,14 @@ class PasswordRecovery(CustomApiView):
         get_user_by_email(email)
         send_password_recovery_approve(email)
         return Response({'detail': 'Перейдите по ссылке из письма для подтверждения сброса пароля'}, status=200)
+
+
+class ProfileAPIView(CustomApiView):
+    serializer_class = UserProfileSerializer
+
+    def get(self, request):
+        serializer = self.get_serializer(request.user)
+        return Response(serializer.data, status=200)
 
 
 # repair offers

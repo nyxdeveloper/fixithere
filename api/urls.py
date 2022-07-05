@@ -7,6 +7,7 @@ from .views import EmailRegistration
 from .views import EmailAuthorization
 from .views import EmailApprove
 from .views import PasswordRecovery
+from .views import ProfileAPIView
 
 # View sets
 from .views import CarBrandReadOnlyViewSet
@@ -36,5 +37,6 @@ urlpatterns = [
     path('authorization/', EmailAuthorization.as_view()),
     path('email_approve/', EmailApprove.as_view()),
     path('password_recovery/', PasswordRecovery.as_view()),
+    path('profile/', ProfileAPIView.as_view()),
 ]
 urlpatterns += router.urls
