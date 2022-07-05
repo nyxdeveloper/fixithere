@@ -1,3 +1,5 @@
+import typing
+
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 from rest_framework.decorators import action
 from rest_framework.generics import GenericAPIView
@@ -6,6 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.filters import SearchFilter, OrderingFilter
 
 from django.contrib.auth import authenticate
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import transaction
 
 from .aggregations import annotate_comments_likes_count
@@ -46,6 +49,7 @@ from .services import set_master
 
 from .exceptions import AuthenticationFailed
 from .exceptions import Forbidden
+from .exceptions import BadRequest
 
 from .paginations import StandardPagination
 
@@ -167,7 +171,7 @@ class RepairCategoryReadOnlyViewSet(CustomReadOnlyModelViewSet):
     ordering_fields = ['id', 'name']
 
 
-class OfferImageReadOnlyViewSet(CustomReadOnlyModelViewSet):
+class OfferImageReadOnlyViewSet(CustomModelViewSet):
     queryset = OfferImage.objects.all()
     serializer_class = OfferImageSerializer
     pagination_class = StandardPagination
@@ -175,6 +179,28 @@ class OfferImageReadOnlyViewSet(CustomReadOnlyModelViewSet):
     filter_backends = [OrderingFilter]
     ordering_fields = ['id']
     filterset_key_fields = ['offer']
+
+    def is_master(self, instance):
+        return instance.offer.master_id == self.request.user.id
+
+    def is_owner(self, instance):
+        return instance.offer.owner_id == self.request.user.id
+
+    def perform_destroy(self, instance):
+        if not self.is_owner(instance):
+            raise Forbidden('Вы не можете удалить картинку чужого оффера')
+        return super(OfferImageReadOnlyViewSet, self).perform_destroy(instance)
+
+    def perform_update(self, serializer):
+        if not self.is_owner(self.get_object()):
+            raise Forbidden('Вы не можете изменить картинку чужого оффера')
+        return super(OfferImageReadOnlyViewSet, self).perform_update(serializer)
+
+    @transaction.atomic()
+    def perform_create(self, serializer):
+        serializer.save()
+        if not self.is_owner(serializer.instance):
+            raise Forbidden('Вы не можете добавить картинку в чужой оффер')
 
 
 class GradeReadOnlyViewSet(CustomReadOnlyModelViewSet):
@@ -258,6 +284,17 @@ class RepairOfferViewSet(CustomModelViewSet):
         if not self.is_owner(self.get_object()):
             raise Forbidden
         return super(RepairOfferViewSet, self).perform_update(serializer)
+
+    @transaction.atomic
+    def perform_create(self, serializer):
+        serializer.save()
+        offer = serializer.instance
+        try:
+            images: typing.List[InMemoryUploadedFile] = self.request.data.get('images')
+            for img in images:
+                offer.images.create(img=img)
+        except TypeError:
+            raise BadRequest(detail='Список картинок должен представлять собой массив бинарных файлов')
 
     @action(methods=['post'], detail=True)
     def set_master(self, request, pk):

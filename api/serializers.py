@@ -110,6 +110,13 @@ class RepairOfferSerializer(serializers.ModelSerializer):
     master_grade = GradeSerializer(read_only=True)
     views = serializers.SerializerMethodField()
     comments = serializers.SerializerMethodField()
+    images = OfferImageSerializer(read_only=True, many=True)
+
+    # def get_images(self, instance):
+    #     return [
+    #         f"{self.context['request'].META['wsgi.url_scheme']}://{self.context['request'].META['HTTP_HOST']}{i.img.url}"
+    #         for i in instance.images.all()
+    #     ]
 
     def get_views(self, instance):
         return instance.views.count()
