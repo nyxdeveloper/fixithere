@@ -95,7 +95,7 @@ class EmailAuthorization(CustomApiView):
 
 class EmailApprove(CustomApiView):
     def get(self, request):
-        code, email = request.query_parrams.get('c'), request.query_parrams.get('e')
+        code, email = request.query_params.get('c'), request.query_params.get('e')
         user = get_user_by_email(email)
         check_otc(email, code, delete=True, description='email_approve')
         user.approve_email = True
