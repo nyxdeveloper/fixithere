@@ -28,7 +28,10 @@ def generate_code(l: int, num: bool = False):
 
 
 def generate_otc(key: str, l: int, num: bool = False, description: str = ''):
-    code = generate_code(l, num)
+    if settings.DEBUG:
+        code = '1111'
+    else:
+        code = generate_code(l, num)
     OTC.objects.create(key=key, code=code, description=description)
     return code
 
@@ -120,6 +123,8 @@ def recovery_password(user):
 def send_user_approve_email(email):
     url_root = settings.APPROVE_EMAIL_URL
     params = f'?c={generate_otc(email, 30, description="email_approve")}&e={email}'
+    if settings.DEBUG:
+        return None
     href = url_root + params
     subject = 'FIXITHERE подтверждение почты'
     body = f'Перейдите по ссылке чтобы подтвердить свой аккаунт:\n{href}\n' \
