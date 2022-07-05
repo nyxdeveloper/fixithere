@@ -127,6 +127,12 @@ class ProfileAPIView(CustomApiView):
         serializer = self.get_serializer(request.user)
         return Response(serializer.data, status=200)
 
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data, instance=request.user)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=200)
+
 
 # repair offers
 class CarBrandReadOnlyViewSet(CustomReadOnlyModelViewSet):
