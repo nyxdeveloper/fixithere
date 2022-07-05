@@ -307,10 +307,10 @@ JAZZMIN_SETTINGS = {
 }
 
 SIMPLE_JWT = {
-    # 'ACCESS_TOKEN_LIFETIME': timedelta(hours=8760),
-    'ACCESS_TOKEN_LIFETIME': None,
-    # 'REFRESH_TOKEN_LIFETIME': timedelta(hours=8784),
-    'REFRESH_TOKEN_LIFETIME': None,
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=876000),
+    # 'ACCESS_TOKEN_LIFETIME': None,
+    'REFRESH_TOKEN_LIFETIME': timedelta(hours=876000),
+    # 'REFRESH_TOKEN_LIFETIME': None,
     'ROTATE_REFRESH_TOKENS': False,
     'BLACKLIST_AFTER_ROTATION': False,
     'UPDATE_LAST_LOGIN': False,
