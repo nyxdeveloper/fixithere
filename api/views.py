@@ -46,6 +46,7 @@ from .services import get_user_by_email
 from .services import recovery_password
 from .services import query_params_filter
 from .services import set_master
+from .services import offers_base_filter
 
 from .exceptions import AuthenticationFailed
 from .exceptions import Forbidden
@@ -268,7 +269,7 @@ class RepairOfferViewSet(CustomModelViewSet):
         return instance.owner_id == self.request.user.id
 
     def get_queryset(self):
-        queryset = self.queryset
+        queryset = offers_base_filter(self.queryset, self.request.user.id)
         user_id = self.request.user.id  # current user id
         queryset = annotate_repair_offers_views_count(queryset)  # annotate 'views_count' variable
         queryset = annotate_repair_offers_my_my_accept_free(queryset,

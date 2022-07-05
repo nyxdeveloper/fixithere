@@ -10,6 +10,7 @@ from .exceptions import InvalidName
 from .exceptions import InvalidOTC
 from .exceptions import UserDoesNotExist
 from .models import User, OTC
+from django.db.models import Q
 
 
 def get_user_by_email(email):
@@ -166,3 +167,11 @@ def set_master(instance, master_id):
         instance.master_id = master_id
         instance.save()
     raise UserDoesNotExist('Мастер не найден')
+
+
+def offers_base_filter(queryset, user_id):
+    return queryset.filter(
+        Q(private=False) |
+        Q(owner_id=user_id, private=True) |
+        Q(master_id=user_id, private=True)
+    )
