@@ -4,6 +4,7 @@ from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from django.conf import settings
 from django.core.mail import send_mail
 from django.contrib.auth import user_logged_in
+from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 from .exceptions import InvalidEmail
 from .exceptions import InvalidPassword
@@ -22,6 +23,16 @@ def get_user_by_email(email):
         return User.objects.get(email=email)
     except User.DoesNotExist:
         raise UserDoesNotExist
+
+
+def get_user_by_token(token: str):
+    access_token_obj = AccessToken(token)
+    user_id = access_token_obj['user_id']
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        user = AnonymousUser()
+    return user
 
 
 def generate_code(l: int, num: bool = False):
