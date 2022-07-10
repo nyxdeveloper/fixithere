@@ -48,6 +48,9 @@ from .serializers import CommentSerializer
 from .serializers import CommentMediaSerializer
 from .serializers import RepairOfferSerializer
 from .serializers import SubscriptionPlanSerializer
+from .serializers import ChatSerializer
+from .serializers import MessageSerializer
+from .serializers import MessageMediaSerializer
 
 from .services import validate_registration_data
 from .services import register_user
@@ -158,6 +161,24 @@ class ProfileAPIView(CustomApiView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=200)
+
+
+class ProfileCarsAPIView(CustomApiView):
+    serializer_class = CarSerializer
+
+    def get(self, request):
+        serializer = self.get_serializer(request.user.cars.all(), many=True)
+        return Response(serializer.data, status=200)
+
+    @transaction.atomic
+    def post(self, request):
+        try:
+            cars_id: typing.List[int] = request.data.get('cars')
+        except TypeError:
+            return Response({'detail': 'Невалидный список идентификаторов'})
+        request.user.cars.clear()
+        request.user.cars.add(*cars_id)
+        return Response({'detail': 'Список машин успешно обновлен'}, status=200)
 
 
 # repair offers
@@ -499,3 +520,32 @@ class SubscriptionViewSet(CustomReadOnlyModelViewSet):
         else:
             Subscription.objects.filter(payment_id=payment["id"]).delete()
         return Response(status=200)
+
+
+class ChatReadOnlyViewSet(CustomReadOnlyModelViewSet):
+    queryset = Chat.objects.filter(deleted=False)
+    serializer_class = ChatSerializer
+    pagination_class = StandardPagination
+    permission_classes = [IsAuthenticated]
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ['name', 'participants__name', 'participants__email']
+    ordering_fields = ['created', 'changed', 'private']
+    filterset_key_fields = ['object_id', 'object_type', 'private', 'created_user']
+    filterset_char_fields = ['name']
+
+    def get_queryset(self):
+        return self.queryset.filter(participants=self.request.user)
+
+
+class MessageReadOnlyViewSet(CustomReadOnlyModelViewSet):
+    queryset = Message.objects.filter(deleted=False)
+    serializer_class = MessageSerializer
+    pagination_class = StandardPagination
+    permission_classes = [IsAuthenticated]
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ['text']
+    ordering_fields = ['created', 'changed']
+    filterset_key_fields = ['chat', 'user', 'reply', 'have_read']
+
+    def get_queryset(self):
+        return self.queryset.filter(chat__participants=self.request.user)

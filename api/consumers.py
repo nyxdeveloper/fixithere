@@ -8,7 +8,16 @@ from .models import Chat
 
 class ChatConsumer(WebsocketConsumer):
     def connect(self):
-        self.accept()
+        if not self.scope['user'].is_active:
+            return self.close()
+        try:
+            chat = Chat.objects.get(id=self.scope['url_route']['kwargs']['pk'])
+            self.room_name = str(chat.id)
+            self.room_group_name = 'chat_' + self.room_name
+            async_to_sync(self.channel_layer.group_add)(self.room_group_name, self.channel_name)
+            self.accept()
+        except Chat.DoesNotExist:
+            self.close()
 
     def disconnect(self, close_code):
         async_to_sync(self.channel_layer.group_discard)()

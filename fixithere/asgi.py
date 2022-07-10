@@ -17,9 +17,9 @@ from api import consumers
 
 application = ProtocolTypeRouter({
     "http": get_asgi_application(),
-    "websocket": TokenAuthMiddleware(URLRouter(
-        [
+    "websocket": TokenAuthMiddleware(
+        URLRouter([
             path('ws/chats/<int:pk>/', consumers.ChatConsumer.as_asgi()),
-        ]
-    )),
+        ])
+    ),
 })

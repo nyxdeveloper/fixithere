@@ -33,14 +33,13 @@ class CarSerializer(serializers.ModelSerializer):
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
-    cars = serializers.PrimaryKeyRelatedField(write_only=True, queryset=Car.objects.all(), many=True)
-    _cars = CarSerializer(many=True, read_only=True, source='cars')
+    # cars = serializers.PrimaryKeyRelatedField(write_only=True, queryset=Car.objects.all(), many=True)
+    # _cars = CarSerializer(many=True, read_only=True, source='cars')
 
     class Meta:
         model = User
         fields = [
-            'id', 'email', 'name', 'role', 'phone', 'whatsapp', 'telegram', 'vk', 'instagram', 'site', 'cars', '_cars',
-            'avatar'
+            'id', 'email', 'name', 'role', 'phone', 'whatsapp', 'telegram', 'vk', 'instagram', 'site', 'avatar'
         ]
 
 
@@ -135,6 +134,7 @@ class RepairOfferSerializer(serializers.ModelSerializer):
 class ChatSerializer(serializers.ModelSerializer):
     _name = serializers.SerializerMethodField(method_name='get_name')
     participants = serializers.PrimaryKeyRelatedField(many=True, queryset=User.objects.all(), write_only=True)
+    _participants = UserProfileSerializer(read_only=True, many=True, source='participants')
     deleted = serializers.HiddenField(default=False)
     unread_count = serializers.IntegerField(read_only=True)
 
@@ -143,7 +143,7 @@ class ChatSerializer(serializers.ModelSerializer):
             return instance.name
         else:
             if len(self.context):
-                names = instance.participants.exclude(id=self.context['user'].id).values_list('name', flat=True)
+                names = instance.participants.exclude(id=self.context['request'].user.id).values_list('name', flat=True)
             else:
                 names = instance.participants.values_list('name', flat=True)
             return ', '.join(names)
@@ -152,7 +152,7 @@ class ChatSerializer(serializers.ModelSerializer):
         model = Chat
         fields = [
             'id', 'name', '_name', 'object_id', 'object_type', 'created_user', 'participants', 'private', 'created',
-            'changed'
+            'changed', 'deleted', 'unread_count'
         ]
 
 
