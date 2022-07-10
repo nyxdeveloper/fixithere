@@ -14,7 +14,7 @@ from .exceptions import BadRequest
 from .models import User, OTC
 from django.db.models import Q
 
-from .models import Grade
+from .models import Chat
 
 
 def get_user_by_email(email):
@@ -202,3 +202,7 @@ def subscription_plans_base_filter(queryset):
         Q(active_date_start__lte=now_date, active_date_end__gte=now_date) |
         Q(active_date_end__isnull=True, active_date_start__isnull=True)
     )
+
+
+def has_offer_chat(repair_offer, user):
+    return Chat.objects.filter(object_id=repair_offer.id, object_type='repair_offer', participants=user).exists()

@@ -21,6 +21,7 @@ from .aggregations import annotate_repair_offers_views_count
 from .aggregations import annotate_repair_offers_my_my_accept_free
 from .aggregations import annotate_repair_offers_completed
 
+from .models import User
 from .models import CarBrand
 from .models import Car
 from .models import RepairCategory
@@ -30,6 +31,9 @@ from .models import GradePhoto
 from .models import Comment
 from .models import CommentMedia
 from .models import RepairOffer
+from .models import Chat
+from .models import Message
+from .models import MessageMedia
 from .models import SubscriptionPlan
 from .models import Subscription
 
@@ -58,6 +62,7 @@ from .services import set_master
 from .services import offers_base_filter
 from .services import get_files_from_request
 from .services import subscription_plans_base_filter
+from .services import has_offer_chat
 
 from .exceptions import AuthenticationFailed
 from .exceptions import Forbidden
@@ -358,9 +363,53 @@ class RepairOfferViewSet(CustomModelViewSet):
 
         return Response({'detail': 'Отзыв отправлен'}, status=200)
 
+    @transaction.atomic
+    @action(methods=['post'], detail=True)
+    def respond(self, request, pk):
+        instance = self.get_object()
+        offer_id = str(instance.pk)
+        if request.user.role != 'master':
+            raise Forbidden('Для проведения данного действия переключите ваш аккаунт в статус мастера в профиле')
+        if request.user.id == instance.owner_id:
+            raise BadRequest('Нельзя откликаться на свои же офферы')
+        Subscription.check_action(request.user, 'can_take_offers')
+        if has_offer_chat(instance, request.user):
+            raise BadRequest('По данному офферу у вас уже создан чат')
+
+        chat = Chat(object_id=offer_id, object_type='repair_offer', created_user=request.user, private=True)
+        chat.save()
+        chat.participants.add(request.user.id, instance.owner_id)
+        text = request.data.get('text')
+        if not text:
+            text = '👋'
+        chat.message_set.create(user=request.user, text=text)
+        return Response({'detail': 'Чат успешно создан'}, status=200)
+
+    @transaction.atomic
     @action(methods=['post'], detail=True)
     def suggest(self, request, pk):
-        return Response()
+        instance = self.get_object()
+        offer_id = str(instance.pk)
+        master_id = request.data.get('master_id')
+        if instance.master:
+            raise BadRequest('На данный оффер уже назначен мастер. Снимите его чтобы предложить оффер другому мастеру')
+        if not master_id:
+            raise BadRequest('Выберите мастера')
+        if not User.objects.filter(role='master', id=master_id, is_active=True).exists():
+            raise BadRequest('лидный идентификатор мастера')
+        if request.user.id != instance.owner_id:
+            raise BadRequest('Можно предлагать мастерам только свои офферы')
+        if has_offer_chat(instance, request.user):
+            raise BadRequest('По данному офферу у вас уже создан чат с этим мастером')
+
+        chat = Chat(object_id=offer_id, object_type='repair_offer', created_user=request.user, private=True)
+        chat.save()
+        chat.participants.add(request.user.id, instance.owner_id)
+        text = request.data.get('text')
+        if not text:
+            text = '👋'
+        chat.message_set.create(user=request.user, text=text)
+        return Response({'detail': 'Чат успешно создан'}, status=200)
 
 
 class SubscriptionViewSet(CustomReadOnlyModelViewSet):
