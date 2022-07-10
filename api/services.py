@@ -4,13 +4,17 @@ from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from django.conf import settings
 from django.core.mail import send_mail
 from django.contrib.auth import user_logged_in
+from django.utils import timezone
 from .exceptions import InvalidEmail
 from .exceptions import InvalidPassword
 from .exceptions import InvalidName
 from .exceptions import InvalidOTC
 from .exceptions import UserDoesNotExist
+from .exceptions import BadRequest
 from .models import User, OTC
 from django.db.models import Q
+
+from .models import Grade
 
 
 def get_user_by_email(email):
@@ -166,7 +170,8 @@ def set_master(instance, master_id):
     elif User.objects.filter(role='master', id=master_id).exists():
         instance.master_id = master_id
         instance.save()
-    raise UserDoesNotExist('Мастер не найден')
+    else:
+        raise UserDoesNotExist('Мастер не найден')
 
 
 def offers_base_filter(queryset, user_id):
@@ -174,4 +179,26 @@ def offers_base_filter(queryset, user_id):
         Q(private=False) |
         Q(owner_id=user_id, private=True) |
         Q(master_id=user_id, private=True)
+    )
+
+
+def get_files_from_request(request, name: str):
+    files = list()
+    c = 1
+    while True:
+        file = request.data.get(name + str(c))
+        if not file:
+            break
+        files.append(file)
+        c += 1
+    return files
+
+
+def subscription_plans_base_filter(queryset):
+    now_date = timezone.now().date()
+    return queryset.filter(
+        Q(active_date_start__lte=now_date, active_date_end__isnull=True) |
+        Q(active_date_end__gte=now_date, active_date_start__isnull=True) |
+        Q(active_date_start__lte=now_date, active_date_end__gte=now_date) |
+        Q(active_date_end__isnull=True, active_date_start__isnull=True)
     )

@@ -7,6 +7,7 @@ from django.db.models import Value
 from django.db.models import Sum
 from django.db.models import OuterRef
 from django.db.models import Subquery
+from django.db.models import Q
 from .models import Message
 
 
@@ -42,3 +43,10 @@ def annotate_repair_offers_my_my_accept_free(queryset, user_id):
             default=Value(True, output_field=BooleanField())
         )
     )
+
+
+def annotate_repair_offers_completed(queryset):
+    return queryset.annotate(completed=Case(
+        When(Q(owner_grade__isnull=False, master_grade__isnull=False), then=Value(True, BooleanField())),
+        default=Value(False, BooleanField())
+    ))

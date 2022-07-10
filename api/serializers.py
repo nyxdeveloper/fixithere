@@ -13,6 +13,9 @@ from .models import RepairOffer
 from .models import Chat
 from .models import Message
 from .models import MessageMedia
+from .models import SubscriptionPlan
+from .models import SubscriptionAction
+from .models import SubscriptionAction
 
 
 class CarBrandSerializer(serializers.ModelSerializer):
@@ -178,3 +181,25 @@ class MessageMediaSerializer(serializers.ModelSerializer):
     class Meta:
         model = MessageMedia
         fields = '__all__'
+
+
+class SubscriptionActionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SubscriptionAction
+        fields = ['name', 'value', ]
+
+
+class SubscriptionPlanSerializer(serializers.ModelSerializer):
+    actions = SubscriptionActionSerializer(read_only=True, many=True)
+
+    class Meta:
+        model = SubscriptionPlan
+        fields = '__all__'
+
+
+class SubscriptionSerializer(serializers.Serializer):
+    start = serializers.DateField(format="%d.%m.%Y", read_only=True)
+    expiration_date = serializers.DateField(format="%d.%m.%Y", read_only=True)
+    plan = serializers.CharField(read_only=True)
+    value = serializers.CharField(read_only=True)
+    active = serializers.BooleanField(read_only=True)

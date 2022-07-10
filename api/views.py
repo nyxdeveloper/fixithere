@@ -4,16 +4,22 @@ from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 from rest_framework.decorators import action
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.filters import SearchFilter, OrderingFilter
+from rest_framework.renderers import json
 
 from django.contrib.auth import authenticate
 from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.conf import settings
 from django.db import transaction
+from django.utils import timezone
+
+from dateutil.relativedelta import relativedelta
 
 from .aggregations import annotate_comments_likes_count
 from .aggregations import annotate_repair_offers_views_count
 from .aggregations import annotate_repair_offers_my_my_accept_free
+from .aggregations import annotate_repair_offers_completed
 
 from .models import CarBrand
 from .models import Car
@@ -24,6 +30,8 @@ from .models import GradePhoto
 from .models import Comment
 from .models import CommentMedia
 from .models import RepairOffer
+from .models import SubscriptionPlan
+from .models import Subscription
 
 from .serializers import CarBrandSerializer
 from .serializers import CarSerializer
@@ -35,6 +43,7 @@ from .serializers import GradePhotoSerializer
 from .serializers import CommentSerializer
 from .serializers import CommentMediaSerializer
 from .serializers import RepairOfferSerializer
+from .serializers import SubscriptionPlanSerializer
 
 from .services import validate_registration_data
 from .services import register_user
@@ -47,12 +56,19 @@ from .services import recovery_password
 from .services import query_params_filter
 from .services import set_master
 from .services import offers_base_filter
+from .services import get_files_from_request
+from .services import subscription_plans_base_filter
 
 from .exceptions import AuthenticationFailed
 from .exceptions import Forbidden
 from .exceptions import BadRequest
 
 from .paginations import StandardPagination
+
+from yookassa import Configuration, Payment
+
+Configuration.account_id = settings.YOOKASSA["account_id"]
+Configuration.secret_key = settings.YOOKASSA["secret_key"]
 
 
 # custom views
@@ -259,7 +275,7 @@ class RepairOfferViewSet(CustomModelViewSet):
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['title', 'description', 'categories__name']
     ordering_fields = ['created', 'private', 'views_count']
-    filterset_key_fields = ['owner', 'master', 'categories', 'private', 'my', 'my_accept', 'free']
+    filterset_key_fields = ['owner', 'master', 'categories', 'private', 'my', 'my_accept', 'free', 'completed']
     filterset_char_fields = ['title']
 
     def is_master(self, instance):
@@ -274,6 +290,7 @@ class RepairOfferViewSet(CustomModelViewSet):
         queryset = annotate_repair_offers_views_count(queryset)  # annotate 'views_count' variable
         queryset = annotate_repair_offers_my_my_accept_free(queryset,
                                                             user_id)  # annotate 'my', 'my_accept' and 'free' boolean variable
+        queryset = annotate_repair_offers_completed(queryset)  # annotate 'completed' boolean variable
         return queryset
 
     def perform_destroy(self, instance):
@@ -303,4 +320,133 @@ class RepairOfferViewSet(CustomModelViewSet):
         if not self.is_owner(instance):
             raise Forbidden
         set_master(instance, request.data.get('master_id'))
-        return Response({'detail': 'Мастер именен'}, status=200)
+        return Response({'detail': 'Мастер успешно изменен'}, status=200)
+
+    @transaction.atomic
+    @action(methods=['post'], detail=True)
+    def send_grade(self, request, pk):
+        instance = self.get_object()
+        try:
+            grade_value: int = int(request.data.get('grade'))
+            comment: str = str(request.data.get('comment'))
+            if grade_value > 5 or grade_value < 1:
+                raise ValueError
+        except (TypeError, ValueError) as e:
+            raise BadRequest('Оценка должна быть целым числом от 1 до 5, а комментарий строкой')
+
+        if self.is_owner(instance):
+            if instance.owner_grade:
+                raise BadRequest('Нельзя оставлять более одного отзыва на оффер')
+            grade = Grade.objects.create(
+                grade=grade_value, comment=comment, rating_user=instance.owner, valued_user=instance.master
+            )
+            instance.owner_grade = grade
+            instance.save()
+        elif self.is_master(instance):
+            if instance.master_grade:
+                raise BadRequest('Нельзя оставлять более одного отзыва на оффер')
+            grade = Grade.objects.create(
+                grade=grade_value, comment=comment, rating_user=instance.master, valued_user=instance.owner
+            )
+            instance.master_grade = grade
+            instance.save()
+        else:
+            raise Forbidden('Отзыв можно оставлять только своим офферам')
+
+        for photo in get_files_from_request(request, 'photo'):
+            grade.images.create(img=photo)
+
+        return Response({'detail': 'Отзыв отправлен'}, status=200)
+
+    @action(methods=['post'], detail=True)
+    def suggest(self, request, pk):
+        return Response()
+
+
+class SubscriptionViewSet(CustomReadOnlyModelViewSet):
+    queryset = SubscriptionPlan.objects.all()
+    serializer_class = SubscriptionPlanSerializer
+    permission_classes = [IsAuthenticated]
+    actions_permission_classes = {
+        'default': [AllowAny],
+        'active': [IsAuthenticated],
+        'pay': [IsAuthenticated],
+    }
+
+    def get_queryset(self):
+        queryset = subscription_plans_base_filter(self.queryset)
+        return queryset
+
+    def get_permissions(self):
+        if self.action in self.actions_permission_classes:
+            return [permission() for permission in self.actions_permission_classes[self.action]]
+        return [permission() for permission in self.actions_permission_classes['default']]
+
+    @action(methods=['get'], detail=False)
+    def active(self, request):
+        sub = Subscription.get_active(request.user)
+        if sub:
+            plan = sub.plan
+        else:
+            plan = self.get_queryset().filter(default=True)
+        serializer = self.get_serializer(plan)
+        return Response({
+            'plan': serializer.data,
+            'expirate': sub.expiration_date.strftime("%d.%m.%Y")
+        })
+
+    @transaction.atomic
+    @action(methods=['post'], detail=True)
+    def pay(self, request, pk):
+        plan = self.get_object()
+        if plan.disabled:
+            return Response({"detail": "Данный тариф заблокирован"}, status=400)
+
+        payment_data = {
+            "amount": {
+                "value": str(plan.cost),
+                "currency": str(plan.currency)
+            },
+            "confirmation": {
+                "type": "redirect",
+                "return_url": settings.YOOKASSA["confirmation_redirect_url"]
+            },
+            "capture": True,
+            "description": "Подписка по тарифному плану \"" + plan.name + "\", пользователь " + request.user.name
+        }
+        try:
+            payment = Payment.create(payment_data)
+        except Exception as e:
+            return Response({"detail": e.__str__()}, status=400)
+
+        value = payment_data['amount']['value'] + payment_data["amount"]["currency"]
+        sub = Subscription.get_active(request.user)
+        if sub:
+            start = sub.expiration_date
+        else:
+            start = timezone.now().date()
+        if plan.duration_type == 'yer':
+            expiration_date = start + relativedelta(years=plan.duration)
+        elif plan.duration_type == 'mon':
+            expiration_date = start + relativedelta(months=plan.duration)
+        else:
+            expiration_date = start + relativedelta(days=plan.duration)
+        if not Subscription.objects.filter(payment_id=payment.id).exists():
+            Subscription.objects.create(
+                payment_id=payment.id,
+                value=value,
+                start=start,
+                expiration_date=expiration_date,
+                user=request.user,
+                plan=plan
+            )
+        return Response(json.loads(payment.json()))
+
+    @action(methods=['post'], detail=False)
+    def pay_notifications(self, request):
+        payment = request.data.get("object")
+        if payment["status"] == "succeeded":
+            Subscription.objects.filter(payment_id=payment["id"]).update(active=True)
+        else:
+            Subscription.objects.filter(payment_id=payment["id"]).delete()
+        return Response(status=200)

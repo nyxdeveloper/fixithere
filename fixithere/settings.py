@@ -341,3 +341,9 @@ SIMPLE_JWT = {
     # 'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
     'SLIDING_TOKEN_REFRESH_LIFETIME': None,
 }
+
+YOOKASSA = {
+    "account_id": "926001",
+    "secret_key": "test__YDD7KaOZgjaikKRS-m3bzQZPGwa3iCQ3V7CfY1Ke1w",
+    "confirmation_redirect_url": "http://localhost:8000/"
+}
