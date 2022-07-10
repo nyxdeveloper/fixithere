@@ -388,11 +388,11 @@ class SubscriptionViewSet(CustomReadOnlyModelViewSet):
         if sub:
             plan = sub.plan
         else:
-            plan = self.get_queryset().filter(default=True)
+            plan = self.get_queryset().get(default=True)
         serializer = self.get_serializer(plan)
         return Response({
             'plan': serializer.data,
-            'expirate': sub.expiration_date.strftime("%d.%m.%Y")
+            'expirate': sub.expiration_date.strftime("%d.%m.%Y") if sub else None
         })
 
     @transaction.atomic

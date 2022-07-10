@@ -404,7 +404,7 @@ class SubscriptionAction(models.Model):
     description = models.TextField(blank=True)
 
     def __str__(self):
-        return self.name
+        return self.name + ': ' + self.value
 
     class Meta:
         verbose_name = 'Функционал подписки'
