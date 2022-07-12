@@ -19,12 +19,12 @@ def annotate_repair_offers_views_count(queryset):
     return queryset.annotate(views_count=Count('views', output_field=IntegerField()))
 
 
-def annotate_chats_unread_count(queryser, user_id):
+def annotate_chats_unread_count(queryset, user_id):
     messages = Message.objects.filter(chat=OuterRef('pk')).exclude(user_id=user_id).annotate(
         read=Sum('have_read', output_field=BooleanField())
     ).filter(read=False).order_by().values('read')
     unread_count = messages.annotate(c=Count('*')).values('c')
-    return queryser.annotate(unread_count=Subquery(unread_count))
+    return queryset.annotate(unread_count=Subquery(unread_count))
 
 
 def annotate_repair_offers_my_my_accept_free(queryset, user_id):
