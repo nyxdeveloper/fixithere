@@ -292,7 +292,7 @@ class Chat(models.Model):
 class Message(models.Model):
     user = models.ForeignKey('api.User', on_delete=models.SET_NULL, null=True, related_name='messages',
                              verbose_name='Пользователь')
-    reply = models.ForeignKey('api.User', on_delete=models.SET_NULL, null=True, default=None,
+    reply = models.ForeignKey('api.Message', on_delete=models.SET_NULL, null=True, default=None,
                               related_name='messages_replies', verbose_name='Кому ответить')
     have_read = models.ManyToManyField('api.User', blank=True, related_name='read_messages', verbose_name='Прочитали')
     chat = models.ForeignKey('api.Chat', on_delete=models.CASCADE, verbose_name='Чат')
@@ -313,7 +313,9 @@ class Message(models.Model):
             return self.text
 
     def reply_str(self):
-        return f'@{self.reply.get_short_name()}'
+        if self.reply:
+            return self.reply.cut_text
+        return ""
 
     def __str__(self):
         return self.text

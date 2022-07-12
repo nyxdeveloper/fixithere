@@ -348,3 +348,12 @@ YOOKASSA = {
     "secret_key": "test__YDD7KaOZgjaikKRS-m3bzQZPGwa3iCQ3V7CfY1Ke1w",
     "confirmation_redirect_url": "http://localhost:8000/"
 }
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        # 'CONFIG': {
+        #     "hosts": [('0.0.0.0', 6379)],
+        # },
+    },
+}

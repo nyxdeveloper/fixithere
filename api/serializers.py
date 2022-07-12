@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.conf import settings
 
 from .models import User
 from .models import CarBrand
@@ -41,6 +42,18 @@ class UserProfileSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'email', 'name', 'role', 'phone', 'whatsapp', 'telegram', 'vk', 'instagram', 'site', 'avatar'
         ]
+
+
+class UserProfileSimpleSerializer(serializers.Serializer):
+    id = serializers.IntegerField(read_only=True)
+    name = serializers.CharField(read_only=True)
+    avatar = serializers.ImageField(read_only=True)
+
+    def to_representation(self, instance):
+        data = super(UserProfileSimpleSerializer, self).to_representation(instance)
+        if data['avatar']:
+            data['avatar'] = settings.DEFAULT_HOST + data['avatar']
+        return data
 
 
 class RepairCategorySerializer(serializers.ModelSerializer):
@@ -151,15 +164,16 @@ class ChatSerializer(serializers.ModelSerializer):
     class Meta:
         model = Chat
         fields = [
-            'id', 'name', '_name', 'object_id', 'object_type', 'created_user', 'participants', 'private', 'created',
-            'changed', 'deleted', 'unread_count'
+            'id', 'name', '_name', 'object_id', 'object_type', 'created_user', 'participants', '_participants',
+            'private', 'created', 'changed', 'deleted', 'unread_count'
         ]
 
 
 class MessageSerializer(serializers.ModelSerializer):
-    _user = UserProfileSerializer(read_only=True, source='user')
+    user = UserProfileSimpleSerializer(read_only=True)
     read = serializers.SerializerMethodField()
     reply_str = serializers.SerializerMethodField()
+    media = serializers.SerializerMethodField()
 
     def get_read(self, instance):
         if len(self.context):
@@ -169,9 +183,17 @@ class MessageSerializer(serializers.ModelSerializer):
     def get_reply_str(self, instance):
         return instance.reply_str()
 
+    def get_media(self, instance):
+        if len(self.context):
+            protocol = self.context['request'].META['wsgi.url_scheme']
+            host = self.context['request'].META['HTTP_HOST']
+            return [f'{protocol}://{host}{i.file.url}' for i in instance.media.all()]
+        else:
+            return [f'{settings.DEFAULT_HOST}{i.file.url}' for i in instance.media.all()]
+
     class Meta:
         model = Message
-        fields = ['id', 'user', '_user', 'reply', 'reply_str', 'read', 'chat', 'text', 'created', 'changed']
+        fields = ['id', 'user', 'reply', 'reply_str', 'read', 'chat', 'text', 'created', 'changed', 'media']
 
 
 class MessageMediaSerializer(serializers.ModelSerializer):
