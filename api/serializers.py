@@ -169,33 +169,6 @@ class ChatSerializer(serializers.ModelSerializer):
         ]
 
 
-class MessageSerializer(serializers.ModelSerializer):
-    user = UserProfileSimpleSerializer(read_only=True)
-    read = serializers.SerializerMethodField()
-    reply_str = serializers.SerializerMethodField()
-    media = serializers.SerializerMethodField()
-
-    def get_read(self, instance):
-        if len(self.context):
-            return instance.have_read.exclude(id=self.context['user'].id).count() > 0
-        return False
-
-    def get_reply_str(self, instance):
-        return instance.reply_str()
-
-    def get_media(self, instance):
-        if len(self.context):
-            protocol = self.context['request'].META['wsgi.url_scheme']
-            host = self.context['request'].META['HTTP_HOST']
-            return [f'{protocol}://{host}{i.file.url}' for i in instance.media.all()]
-        else:
-            return [f'{settings.DEFAULT_HOST}{i.file.url}' for i in instance.media.all()]
-
-    class Meta:
-        model = Message
-        fields = ['id', 'user', 'reply', 'reply_str', 'read', 'chat', 'text', 'created', 'changed', 'media']
-
-
 class MessageMediaSerializer(serializers.ModelSerializer):
     extension = serializers.CharField(read_only=True)
     filename = serializers.CharField(read_only=True)
@@ -203,6 +176,28 @@ class MessageMediaSerializer(serializers.ModelSerializer):
     class Meta:
         model = MessageMedia
         fields = '__all__'
+
+
+class MessageSerializer(serializers.ModelSerializer):
+    _user = UserProfileSimpleSerializer(read_only=True, source='user')
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    read = serializers.SerializerMethodField()
+    reply_str = serializers.SerializerMethodField()
+    media = MessageMediaSerializer(read_only=True, many=True)
+
+    def get_read(self, instance):
+        if len(self.context):
+            return instance.have_read.exclude(id=self.context['request'].user.id).count() > 0
+        return False
+
+    def get_reply_str(self, instance):
+        return instance.reply_str()
+
+    class Meta:
+        model = Message
+        fields = [
+            'id', 'user', '_user', 'reply', 'reply_str', 'read', 'tech', 'chat', 'text', 'created', 'changed', 'media'
+        ]
 
 
 class SubscriptionActionSerializer(serializers.ModelSerializer):

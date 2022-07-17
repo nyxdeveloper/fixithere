@@ -20,6 +20,7 @@ application = ProtocolTypeRouter({
     "websocket": TokenAuthMiddleware(
         URLRouter([
             path('ws/chats/<int:pk>/', consumers.ChatConsumer.as_asgi()),
+            path('ws/messages/', consumers.UserMessagesConsumer.as_asgi()),
         ])
     ),
 })

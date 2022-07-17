@@ -22,7 +22,7 @@ from .views import CommentMediaReadOnlyViewSet
 from .views import RepairOfferViewSet
 from .views import SubscriptionViewSet
 from .views import ChatReadOnlyViewSet
-from .views import MessageReadOnlyViewSet
+from .views import MessageViewSet
 
 router = DefaultRouter()
 
@@ -37,7 +37,7 @@ router.register('comments_media', CommentMediaReadOnlyViewSet)
 router.register('offers', RepairOfferViewSet)
 router.register('subscription', SubscriptionViewSet)
 router.register('chats', ChatReadOnlyViewSet)
-router.register('messages', MessageReadOnlyViewSet)
+router.register('messages', MessageViewSet)
 
 urlpatterns = [
     path('registration/', EmailRegistration.as_view()),

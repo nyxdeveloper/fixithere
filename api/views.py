@@ -6,20 +6,23 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.filters import SearchFilter, OrderingFilter
-from rest_framework.renderers import json
+from rest_framework.utils import json, encoders
 
 from django.contrib.auth import authenticate
-from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
 from dateutil.relativedelta import relativedelta
 
+from asgiref.sync import async_to_sync
+
 from .aggregations import annotate_comments_likes_count
 from .aggregations import annotate_repair_offers_views_count
 from .aggregations import annotate_repair_offers_my_my_accept_free
 from .aggregations import annotate_repair_offers_completed
+
+from channels.layers import get_channel_layer
 
 from .models import User
 from .models import CarBrand
@@ -33,7 +36,6 @@ from .models import CommentMedia
 from .models import RepairOffer
 from .models import Chat
 from .models import Message
-from .models import MessageMedia
 from .models import SubscriptionPlan
 from .models import Subscription
 
@@ -50,7 +52,6 @@ from .serializers import RepairOfferSerializer
 from .serializers import SubscriptionPlanSerializer
 from .serializers import ChatSerializer
 from .serializers import MessageSerializer
-from .serializers import MessageMediaSerializer
 
 from .services import validate_registration_data
 from .services import register_user
@@ -332,13 +333,14 @@ class RepairOfferViewSet(CustomModelViewSet):
     @transaction.atomic
     def perform_create(self, serializer):
         serializer.save()
-        offer = serializer.instance
-        try:
-            images: typing.List[InMemoryUploadedFile] = self.request.data.get('images')
-            for img in images:
-                offer.images.create(img=img)
-        except TypeError:
-            raise BadRequest(detail='Список картинок должен представлять собой массив бинарных файлов')
+        for img in self.request.FILES.getlist('images'):
+            size_mb = img.size / 1024 / 1024
+            if size_mb > settings.MAX_OFFER_PHOTO_SIZE_MB:
+                raise BadRequest('Размер загружаемых фотографий не должен превышать 5 Мб')
+            ext = img.name.split('.')[-1]
+            if ext not in ['png', 'jpg', 'jpeg']:
+                raise BadRequest('Загружаемые файлы должны иметь один из перечисленных форматов: .png, .jpg, .jpeg')
+            serializer.instance.images.create(img=img)
 
     @action(methods=['post'], detail=True)
     def set_master(self, request, pk):
@@ -537,7 +539,7 @@ class ChatReadOnlyViewSet(CustomReadOnlyModelViewSet):
         return self.queryset.filter(participants=self.request.user)
 
 
-class MessageReadOnlyViewSet(CustomReadOnlyModelViewSet):
+class MessageViewSet(CustomModelViewSet):
     queryset = Message.objects.filter(deleted=False)
     serializer_class = MessageSerializer
     pagination_class = StandardPagination
@@ -549,3 +551,37 @@ class MessageReadOnlyViewSet(CustomReadOnlyModelViewSet):
 
     def get_queryset(self):
         return self.queryset.filter(chat__participants=self.request.user)
+
+    def filter_queryset(self, queryset):
+        queryset = super(MessageViewSet, self).filter_queryset(queryset)
+        return queryset
+
+    @transaction.atomic
+    def perform_create(self, serializer):
+        serializer.save()
+        for media in self.request.FILES.getlist('media'):
+            size_mb = media.size / 1024 / 1024
+            if size_mb > settings.MAX_MESSAGE_MEDIA_SIZE_MB:
+                raise BadRequest('Размер загружаемых файлов не должен превышать 5 Мб')
+            serializer.instance.media.create(file=media)
+        send_serializer = self.get_serializer(serializer.instance)
+        channel_layer = get_channel_layer()
+        message_text_data = json.dumps(send_serializer.data, cls=encoders.JSONEncoder, ensure_ascii=False)
+        async_to_sync(channel_layer.group_send)(
+            f"chat-{serializer.instance.chat_id}", {"type": "chat_message", "message": message_text_data}
+        )
+        for p_id in serializer.instance.chat.participants.exclude(id=self.request.user.id).values_list('id', flat=True):
+            async_to_sync(channel_layer.group_send)(
+                f"messages-{p_id}", {"type": "new_message", "message": message_text_data}
+            )
+
+    def perform_destroy(self, instance):
+        if instance.user_id != self.request.user.id:
+            raise Forbidden('Вы не можете удалить сообщение другого пользователя')
+        instance.deleted = True
+        instance.save()
+
+    def perform_update(self, serializer):
+        if serializer.instance.user_id != self.request.user.id:
+            raise Forbidden('Вы не можете редактировать сообщение другого пользователя')
+        return super(MessageViewSet, self).perform_update(serializer)

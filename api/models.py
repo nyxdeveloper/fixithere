@@ -300,6 +300,7 @@ class Message(models.Model):
     created = models.DateTimeField(auto_now_add=True, editable=False, verbose_name='Время создания')
     changed = models.DateTimeField(auto_now=True, verbose_name='Время последнего изменения')
     deleted = models.BooleanField(default=False, verbose_name='Удалено')
+    tech = models.BooleanField(default=False, verbose_name='Техническое')
 
     @staticmethod
     def get_unread_count(user):
