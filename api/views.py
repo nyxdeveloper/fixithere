@@ -303,7 +303,7 @@ class RepairOfferViewSet(CustomModelViewSet):
     search_fields = ['title', 'description', 'categories__name']
     ordering_fields = ['created', 'private', 'views_count']
     filterset_key_fields = ['owner', 'master', 'categories', 'private', 'my', 'my_accept', 'free', 'completed']
-    filterset_char_fields = ['title']
+    filterset_char_fields = ['title', 'description']
 
     def is_master(self, instance):
         return instance.master_id == self.request.user.id
