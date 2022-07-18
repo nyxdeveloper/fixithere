@@ -62,6 +62,7 @@ from .services import check_otc
 from .services import get_user_by_email
 from .services import recovery_password
 from .services import query_params_filter
+from .services import exclude_words
 from .services import set_master
 from .services import offers_base_filter
 from .services import get_files_from_request
@@ -92,6 +93,7 @@ class CustomReadOnlyModelViewSet(ReadOnlyModelViewSet):
     def filter_queryset(self, queryset):
         queryset = super(CustomReadOnlyModelViewSet, self).filter_queryset(queryset)
         queryset = query_params_filter(self.request, queryset, self.filterset_key_fields, self.filterset_char_fields)
+        queryset = exclude_words(self.request, queryset, self.filterset_char_fields)
         return queryset
 
 
@@ -102,6 +104,7 @@ class CustomModelViewSet(ModelViewSet):
     def filter_queryset(self, queryset):
         queryset = super(CustomModelViewSet, self).filter_queryset(queryset)
         queryset = query_params_filter(self.request, queryset, self.filterset_key_fields, self.filterset_char_fields)
+        queryset = exclude_words(self.request, queryset, self.filterset_char_fields)
         return queryset
 
 

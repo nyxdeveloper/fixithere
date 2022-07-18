@@ -14,6 +14,8 @@ from .exceptions import UserDoesNotExist
 from .exceptions import BadRequest
 from .models import User, OTC
 from django.db.models import Q
+from django.contrib.postgres.search import SearchVector
+from django.contrib.postgres.search import SearchQuery
 
 from .models import Chat
 
@@ -161,7 +163,7 @@ def get_access_token(user, request):
 
 
 def query_params_filter(request, queryset, key_fields, char_fields):
-    if len(request.query_params) > 0:
+    if len(request.query_params):
         for p in request.query_params:
             if p in key_fields:
                 queryset = queryset.filter(**{'%s__in' % p: request.query_params.getlist(p)})
@@ -171,6 +173,19 @@ def query_params_filter(request, queryset, key_fields, char_fields):
                 queryset = queryset.exclude(**{'%s__in' % p: request.query_params.getlist(p)})
             elif p.replace("ex_", "") in char_fields:
                 queryset = queryset.exclude(**{'%s__icontains' % p: request.query_params.get(p)})
+    return queryset
+
+
+def exclude_words(request, queryset, fields):
+    exclude_string = request.query_params.get('exclude_words')
+    if exclude_string:
+        words = exclude_string.split(',')
+        vector = SearchVector(*fields)
+        # query = SearchQuery(words)
+        # queryset = queryset.annotate(exclude_words=vector).exclude(exclude_words=query)
+        queryset = queryset.annotate(exclude_words=vector)
+        for w in words:
+            queryset = queryset.exclude(exclude_words=w)
     return queryset
 
 
