@@ -162,19 +162,15 @@ def get_access_token(user, request):
 
 def query_params_filter(request, queryset, key_fields, char_fields):
     if len(request.query_params) > 0:
-        query = Q()
-        ex_query = Q()
         for p in request.query_params:
             if p in key_fields:
-                query = query | Q(**{'%s__in' % p: request.query_params.getlist(p)})
-            if p in char_fields:
-                query = query | Q(**{'%s__icontains' % p: request.query_params.get(p)})
-            ex_p = p.replace("ex_", "")
-            if ex_p in key_fields:
-                ex_query = ex_query | Q(**{'%s__in' % ex_p: request.query_params.getlist(p)})
-            if ex_p in char_fields:
-                ex_query = ex_query | Q(**{'%s__icontains' % ex_p: request.query_params.get(p)})
-        queryset = queryset.filter(query).exclude(ex_query)
+                queryset = queryset.filter(**{'%s__in' % p: request.query_params.getlist(p)})
+            elif p in char_fields:
+                queryset = queryset.filter(**{'%s__icontains' % p: request.query_params.get(p)})
+            elif p.replace("ex_", "") in key_fields:
+                queryset = queryset.exclude(**{'%s__in' % p: request.query_params.getlist(p)})
+            elif p.replace("ex_", "") in char_fields:
+                queryset = queryset.exclude(**{'%s__icontains' % p: request.query_params.get(p)})
     return queryset
 
 
