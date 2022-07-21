@@ -191,7 +191,7 @@ class MastersViewSet(CustomReadOnlyModelViewSet):
     pagination_class = StandardPagination
     permission_classes = [IsAuthenticated]
     filter_backends = [SearchFilter, OrderingFilter]
-    search_fields = ['name', '']
+    search_fields = ['name', 'repair_categories']
     ordering_fields = []
 
 
