@@ -33,33 +33,32 @@ class CarSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class UserProfileSerializer(serializers.ModelSerializer):
-    # cars = serializers.PrimaryKeyRelatedField(write_only=True, queryset=Car.objects.all(), many=True)
-    # _cars = CarSerializer(many=True, read_only=True, source='cars')
-
-    class Meta:
-        model = User
-        fields = [
-            'id', 'email', 'name', 'role', 'phone', 'whatsapp', 'telegram', 'vk', 'instagram', 'site', 'avatar'
-        ]
-
-
-class UserProfileSimpleSerializer(serializers.Serializer):
-    id = serializers.IntegerField(read_only=True)
-    name = serializers.CharField(read_only=True)
-    avatar = serializers.ImageField(read_only=True)
-
-    def to_representation(self, instance):
-        data = super(UserProfileSimpleSerializer, self).to_representation(instance)
-        if data['avatar']:
-            data['avatar'] = settings.DEFAULT_HOST + data['avatar']
-        return data
-
-
 class RepairCategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = RepairCategory
         fields = '__all__'
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    repair_categories = serializers.PrimaryKeyRelatedField(write_only=True, queryset=Car.objects.all(), many=True)
+    _repair_categories = RepairCategorySerializer(many=True, read_only=True, source='repair_categories')
+
+    class Meta:
+        model = User
+        fields = [
+            'id', 'email', 'name', 'role', 'phone', 'whatsapp', 'telegram', 'vk', 'instagram', 'site', 'avatar',
+            'repair_categories', '_repair_categories'
+        ]
+
+
+class UserProfileSimpleSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(read_only=True)
+    name = serializers.CharField(read_only=True)
+    avatar = serializers.ImageField(read_only=True)
+
+    class Meta:
+        model = User
+        fields = ['id', 'name', 'avatar']
 
 
 class OfferImageSerializer(serializers.ModelSerializer):

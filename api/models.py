@@ -58,6 +58,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     site = models.CharField(max_length=250, blank=True, verbose_name='Сайт')
 
     cars = models.ManyToManyField('api.Car', blank=True, verbose_name='Машины')
+    repair_categories = models.ManyToManyField('api.RepairCategory', blank=True)
 
     def avatar_upload(self, filename):
         return os.path.join('users', self.email, filename)

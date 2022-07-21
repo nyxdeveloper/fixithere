@@ -185,6 +185,16 @@ class ProfileCarsAPIView(CustomApiView):
         return Response({'detail': 'Список машин успешно обновлен'}, status=200)
 
 
+class MastersViewSet(CustomReadOnlyModelViewSet):
+    queryset = User.objects.filter(role='master')
+    serializer_class = UserProfileSerializer
+    pagination_class = StandardPagination
+    permission_classes = [IsAuthenticated]
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ['name', '']
+    ordering_fields = []
+
+
 # repair offers
 class CarBrandReadOnlyViewSet(CustomReadOnlyModelViewSet):
     queryset = CarBrand.objects.all()
