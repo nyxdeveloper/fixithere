@@ -208,18 +208,6 @@ def offers_base_filter(queryset, user_id):
     )
 
 
-def get_files_from_request(request, name: str):
-    files = list()
-    c = 1
-    while True:
-        file = request.data.get(name + str(c))
-        if not file:
-            break
-        files.append(file)
-        c += 1
-    return files
-
-
 def subscription_plans_base_filter(queryset):
     now_date = timezone.now().date()
     return queryset.filter(

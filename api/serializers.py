@@ -81,6 +81,11 @@ class GradeSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class SendGradeSerializer(serializers.Serializer):
+    grade = serializers.IntegerField(max_value=5, min_value=1)
+    comment = serializers.CharField(allow_blank=True)
+
+
 class GradePhotoSerializer(serializers.ModelSerializer):
     class Meta:
         model = GradePhoto

@@ -161,6 +161,8 @@ class Grade(models.Model):
                                     related_name='feedback_send')
     valued_user = models.ForeignKey('api.User', on_delete=models.SET_NULL, null=True, verbose_name='Оцениваемый',
                                     related_name='feedback_receive')
+    offer = models.ForeignKey('api.RepairOffer', on_delete=models.SET_NULL, null=True, default=None,
+                              verbose_name='Оффер', related_name='grades')
     comment = models.TextField(verbose_name='Комментарий')
     created = models.DateTimeField(auto_now_add=True, editable=False, verbose_name='Время создания')
 

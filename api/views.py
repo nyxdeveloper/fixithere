@@ -45,6 +45,7 @@ from .serializers import UserProfileSerializer
 from .serializers import RepairCategorySerializer
 from .serializers import OfferImageSerializer
 from .serializers import GradeSerializer
+from .serializers import SendGradeSerializer
 from .serializers import GradePhotoSerializer
 from .serializers import CommentSerializer
 from .serializers import CommentMediaSerializer
@@ -65,7 +66,6 @@ from .services import query_params_filter
 from .services import exclude_words
 from .services import set_master
 from .services import offers_base_filter
-from .services import get_files_from_request
 from .services import subscription_plans_base_filter
 from .services import has_offer_chat
 
@@ -258,7 +258,7 @@ class GradeReadOnlyViewSet(CustomReadOnlyModelViewSet):
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['comment']
     ordering_fields = ['grade', 'created']
-    filterset_key_fields = ['rating_user', 'valued_user']
+    filterset_key_fields = ['rating_user', 'valued_user', 'order']
 
 
 class GradePhotoReadOnlyViewSet(CustomReadOnlyModelViewSet):
@@ -305,7 +305,9 @@ class RepairOfferViewSet(CustomModelViewSet):
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['title', 'description', 'categories__name']
     ordering_fields = ['created', 'private', 'views_count']
-    filterset_key_fields = ['owner', 'master', 'categories', 'private', 'my', 'my_accept', 'free', 'completed']
+    filterset_key_fields = [
+        'owner', 'master', 'categories', 'private', 'my', 'my_accept', 'free', 'completed'
+    ]
     filterset_char_fields = ['title', 'description']
 
     def is_master(self, instance):
@@ -357,19 +359,17 @@ class RepairOfferViewSet(CustomModelViewSet):
     @action(methods=['post'], detail=True)
     def send_grade(self, request, pk):
         instance = self.get_object()
-        try:
-            grade_value: int = int(request.data.get('grade'))
-            comment: str = str(request.data.get('comment'))
-            if grade_value > 5 or grade_value < 1:
-                raise ValueError
-        except (TypeError, ValueError) as e:
-            raise BadRequest('Оценка должна быть целым числом от 1 до 5, а комментарий строкой')
+        grade_serializer = SendGradeSerializer(data=request.data)
+        grade_serializer.is_valid(raise_exception=True)
+        grade_data = grade_serializer.data
+        grade_value, comment = grade_data.get('grade'), grade_data.get('comment')
 
         if self.is_owner(instance):
             if instance.owner_grade:
                 raise BadRequest('Нельзя оставлять более одного отзыва на оффер')
             grade = Grade.objects.create(
-                grade=grade_value, comment=comment, rating_user=instance.owner, valued_user=instance.master
+                grade=grade_value, comment=comment, rating_user=instance.owner, valued_user=instance.master,
+                offer=instance
             )
             instance.owner_grade = grade
             instance.save()
@@ -377,14 +377,15 @@ class RepairOfferViewSet(CustomModelViewSet):
             if instance.master_grade:
                 raise BadRequest('Нельзя оставлять более одного отзыва на оффер')
             grade = Grade.objects.create(
-                grade=grade_value, comment=comment, rating_user=instance.master, valued_user=instance.owner
+                grade=grade_value, comment=comment, rating_user=instance.master, valued_user=instance.owner,
+                offer=instance
             )
             instance.master_grade = grade
             instance.save()
         else:
             raise Forbidden('Отзыв можно оставлять только своим офферам')
 
-        for photo in get_files_from_request(request, 'photo'):
+        for photo in request.FILES.getlist('photo'):
             grade.images.create(img=photo)
 
         return Response({'detail': 'Отзыв отправлен'}, status=200)
