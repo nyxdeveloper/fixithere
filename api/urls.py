@@ -20,6 +20,7 @@ from .views import GradePhotoReadOnlyViewSet
 from .views import CommentReadOnlyViewSet
 from .views import CommentMediaReadOnlyViewSet
 from .views import RepairOfferViewSet
+from .views import PublicRepairOfferViewSet
 from .views import SubscriptionViewSet
 from .views import ChatReadOnlyViewSet
 from .views import MessageViewSet
@@ -35,6 +36,7 @@ router.register('grade_photos', GradePhotoReadOnlyViewSet)
 router.register('comments', CommentReadOnlyViewSet)
 router.register('comments_media', CommentMediaReadOnlyViewSet)
 router.register('offers', RepairOfferViewSet)
+router.register('public_offers', PublicRepairOfferViewSet)
 router.register('subscription', SubscriptionViewSet)
 router.register('chats', ChatReadOnlyViewSet)
 router.register('messages', MessageViewSet)

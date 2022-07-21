@@ -439,6 +439,23 @@ class RepairOfferViewSet(CustomModelViewSet):
         return Response({'detail': 'Чат успешно создан'}, status=200)
 
 
+class PublicRepairOfferViewSet(CustomReadOnlyModelViewSet):
+    queryset = RepairOffer.objects.filter(private=False)
+    serializer_class = RepairOfferSerializer
+    pagination_class = StandardPagination
+    permission_classes = [IsAuthenticated]
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ['title', 'description', 'categories__name']
+    ordering_fields = ['created']
+    filterset_key_fields = ['owner', 'master', 'categories']
+    filterset_char_fields = ['title', 'description']
+
+    def get_queryset(self):
+        if self.request.query_params.get('master') or self.request.query_params.get('owner'):
+            return self.queryset
+        return self.queryset.none()
+
+
 class SubscriptionViewSet(CustomReadOnlyModelViewSet):
     queryset = SubscriptionPlan.objects.all()
     serializer_class = SubscriptionPlanSerializer
