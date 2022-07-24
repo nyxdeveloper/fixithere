@@ -433,7 +433,7 @@ class RepairOfferViewSet(CustomModelViewSet):
         if not master_id:
             raise BadRequest('Выберите мастера')
         if not User.objects.filter(role='master', id=master_id, is_active=True).exists():
-            raise BadRequest('лидный идентификатор мастера')
+            raise BadRequest('Невалидный идентификатор мастера')
         if request.user.id != instance.owner_id:
             raise BadRequest('Можно предлагать мастерам только свои офферы')
         if has_offer_chat(instance, request.user):

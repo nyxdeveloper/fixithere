@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import PermissionsMixin, AbstractBaseUser, BaseUserManager
 from django.core.validators import MaxValueValidator
 from django.db.models.signals import post_delete
+from django.db.models.signals import post_save
 from django.utils import timezone
 
 from .exceptions import BadRequest
@@ -10,6 +11,7 @@ from .exceptions import Forbidden
 from .signals import file_model_delete
 from .signals import img_model_delete
 from .signals import user_avatar_delete
+from .signals import create_helpdesk_chat
 
 from .exceptions import SelfAppointedOffer
 
@@ -515,3 +517,5 @@ post_delete.connect(img_model_delete, sender=OfferImage)
 post_delete.connect(img_model_delete, sender=GradePhoto)
 post_delete.connect(img_model_delete, sender=SubscriptionPlan)
 post_delete.connect(user_avatar_delete, sender=User)
+
+post_save.connect(create_helpdesk_chat, sender=User)

@@ -11,3 +11,14 @@ def img_model_delete(sender, instance, **kwargs):
 def user_avatar_delete(sender, instance, **kwargs):
     if instance.avatar.name:
         instance.avatar.delete()
+
+
+def create_helpdesk_chat(sender, instance, created, **kwargs):
+    if created:
+        hd_chat = instance.chats.create(
+            object_id=str(instance.pk),
+            object_type='helpdesk',
+            created_user=instance,
+            private=True
+        )
+        hd_chat.participants.add(instance.id)
