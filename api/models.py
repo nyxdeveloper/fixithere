@@ -61,6 +61,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     cars = models.ManyToManyField('api.Car', blank=True, verbose_name='Машины')
     repair_categories = models.ManyToManyField('api.RepairCategory', blank=True)
+    trusted_masters = models.ManyToManyField('api.User', related_name='trusting_users', blank=True)
 
     def avatar_upload(self, filename):
         return os.path.join('users', self.email, filename)
@@ -101,6 +102,21 @@ class OTC(models.Model):
     class Meta:
         verbose_name = 'Одноразовый код'
         verbose_name_plural = 'Одноразовые коды'
+
+
+class RequestForCooperation(models.Model):
+    requesting = models.ForeignKey('api.User', on_delete=models.CASCADE, related_name='requested_cooperation')
+    responsible = models.ForeignKey('api.User', on_delete=models.CASCADE, related_name='responded_cooperation')
+    positive_response = models.BooleanField(verbose_name='Положительный ответ', default=False)
+    responded = models.BooleanField(verbose_name='Отвечено', default=False)
+    created = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'{self.requesting.get_name()} --> {self.responsible.get_name()}'
+
+    class Meta:
+        verbose_name = 'Сотрудничество'
+        verbose_name_plural = 'Сотрудничество'
 
 
 class CarBrand(models.Model):

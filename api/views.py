@@ -11,6 +11,7 @@ from rest_framework.utils import json, encoders
 from django.contrib.auth import authenticate
 from django.conf import settings
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from dateutil.relativedelta import relativedelta
@@ -21,11 +22,12 @@ from .aggregations import annotate_comments_likes_count
 from .aggregations import annotate_repair_offers_views_count
 from .aggregations import annotate_repair_offers_my_my_accept_free
 from .aggregations import annotate_repair_offers_completed
-from .aggregations import annotate_masters_offers_count
+from .aggregations import annotate_masters_statistic
 
 from channels.layers import get_channel_layer
 
 from .models import User
+from .models import RequestForCooperation
 from .models import CarBrand
 from .models import Car
 from .models import RepairCategory
@@ -43,6 +45,7 @@ from .models import Subscription
 from .serializers import CarBrandSerializer
 from .serializers import CarSerializer
 from .serializers import UserProfileSerializer
+from .serializers import RequestForCooperationSerializer
 from .serializers import RepairCategorySerializer
 from .serializers import OfferImageSerializer
 from .serializers import GradeSerializer
@@ -72,6 +75,7 @@ from .services import has_offer_chat
 
 from .exceptions import AuthenticationFailed
 from .exceptions import Forbidden
+from .exceptions import MasterRoleRequired
 from .exceptions import BadRequest
 
 from .paginations import StandardPagination
@@ -197,8 +201,46 @@ class MastersViewSet(CustomReadOnlyModelViewSet):
 
     def get_queryset(self):
         queryset = self.queryset
-        queryset = annotate_masters_offers_count(queryset)
+        queryset = annotate_masters_statistic(queryset)
         return queryset
+
+    @action(methods=['post'], detail=True)
+    def request_for_cooperation(self, request, pk):
+        if self.request.user.role != 'master':
+            raise MasterRoleRequired
+        instance = self.get_object()
+        RequestForCooperation.objects.create(requesting=request.user, responsible=instance)
+        return Response({'detail': 'Запрос на сотрудничество успешно отправлен'}, status=200)
+
+
+class RequestForCooperationViewSet(CustomModelViewSet):
+    queryset = RequestForCooperation.objects.all()
+    serializer_class = RequestForCooperationSerializer
+    pagination_class = StandardPagination
+    permission_classes = [IsAuthenticated]
+    filter_backends = [SearchFilter, OrderingFilter]
+    filterset_key_fields = ['positive_response', 'responded']
+    search_fields = ['requesting__name', 'responsible__name']
+    ordering_fields = ['created']
+
+    def get_queryset(self):
+        queryset = self.queryset.filter(Q(requesting=self.request.user) | Q(responsible=self.request.user))
+        return queryset
+
+    @action(methods=['post'], detail=True)
+    def approve_cooperation(self, request, pk):
+        instance = self.get_object()
+        instance.positive_response = True
+        instance.responded = True
+        instance.save()
+        return Response({'detail': 'Сотрудничество подтверждено'})
+
+    @action(methods=['post'], detail=True)
+    def reject_cooperation(self, request, pk):
+        instance = self.get_object()
+        instance.responded = True
+        instance.save()
+        return Response({'detail': 'Сотрудничество отклонено'})
 
 
 # repair offers
@@ -412,7 +454,7 @@ class RepairOfferViewSet(CustomModelViewSet):
         instance = self.get_object()
         offer_id = str(instance.pk)
         if request.user.role != 'master':
-            raise Forbidden('Для проведения данного действия переключите ваш аккаунт в статус мастера в профиле')
+            raise MasterRoleRequired
         if request.user.id == instance.owner_id:
             raise BadRequest('Нельзя откликаться на свои же офферы')
         Subscription.check_action(request.user, 'can_take_offers')

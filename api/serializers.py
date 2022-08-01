@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.conf import settings
 
 from .models import User
+from .models import RequestForCooperation
 from .models import CarBrand
 from .models import Car
 from .models import RepairCategory
@@ -15,7 +16,6 @@ from .models import Chat
 from .models import Message
 from .models import MessageMedia
 from .models import SubscriptionPlan
-from .models import SubscriptionAction
 from .models import SubscriptionAction
 
 
@@ -43,12 +43,17 @@ class UserProfileSerializer(serializers.ModelSerializer):
     repair_categories = serializers.PrimaryKeyRelatedField(write_only=True, queryset=Car.objects.all(), many=True)
     _repair_categories = RepairCategorySerializer(many=True, read_only=True, source='repair_categories')
     complete_offers_count = serializers.IntegerField(read_only=True)
+    # canceled_offers_count = serializers.IntegerField(read_only=True)
+    # trusting_users_count = serializers.IntegerField(read_only=True)
+    # cooperation_count = serializers.IntegerField(read_only=True)
+    # offer_complete_percent = serializers.FloatField(read_only=True)
+    rating = serializers.FloatField(read_only=True)
 
     class Meta:
         model = User
         fields = [
             'id', 'email', 'name', 'role', 'phone', 'whatsapp', 'telegram', 'vk', 'instagram', 'site', 'avatar',
-            'repair_categories', '_repair_categories', 'complete_offers_count'
+            'repair_categories', '_repair_categories', 'complete_offers_count', 'rating'
         ]
 
 
@@ -60,6 +65,12 @@ class UserProfileSimpleSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'name', 'avatar']
+
+
+class RequestForCooperationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RequestForCooperation
+        fields = '__all__'
 
 
 class OfferImageSerializer(serializers.ModelSerializer):

@@ -1,5 +1,6 @@
 from django.db.models import IntegerField
 from django.db.models import BooleanField
+from django.db.models import FloatField
 from django.db.models import Count
 from django.db.models import Case
 from django.db.models import When
@@ -8,6 +9,7 @@ from django.db.models import Sum
 from django.db.models import OuterRef
 from django.db.models import Subquery
 from django.db.models import Q
+from django.db.models import F
 from .models import Message
 
 
@@ -52,7 +54,24 @@ def annotate_repair_offers_completed(queryset):
     ))
 
 
-def annotate_masters_offers_count(queryset):
+def annotate_masters_statistic(queryset):
     return queryset.annotate(
-        complete_offers_count=Count('accepted_offers', filter=Q(accepted_offers__owner_grade__isnull=False))
+        complete_offers_count=Count('accepted_offers', Q(accepted_offers__owner_grade__isnull=False)),
+        # canceled_offers_count=Count('canceled_offers'),
+        # all_offers_count=F('complete_offers_count') + F('canceled_offers_count'),
+        # trusting_users_count=Count('trusting_users'),
+        # requested_cooperation_count=Count('requested_cooperation', Q(requested_cooperation__positive_response=True)),
+        # responded_cooperation_count=Count('requested_cooperation', Q(responded_cooperation__positive_response=True)),
+        # cooperation_count=F('requested_cooperation_count') + F('responded_cooperation_count'),
+        feedback_count=Count('feedback_receive'),
+        rating=Case(
+            When(Q(feedback_count=0), then=0.0),
+            default=Sum('feedback_receive__grade') / Count('feedback_receive'),
+            output_field=FloatField()
+        ),
+        # offer_complete_percent=Case(
+        #     When(Q(all_offers_count=0), then=0.0),
+        #     default=F('complete_offers_count') / F('all_offers_count') * Value(100),
+        #     output_field=FloatField()
+        # )
     )

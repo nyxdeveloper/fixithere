@@ -44,6 +44,11 @@ class Forbidden(APIException):
     default_detail = 'Действие запрещено'
 
 
+class MasterRoleRequired(APIException):
+    status_code = 403
+    default_detail = 'Для проведения данного действия переключите ваш аккаунт в статус мастера в профиле'
+
+
 class BadRequest(APIException):
     status_code = 400
     default_detail = 'Невалидный запрос'
