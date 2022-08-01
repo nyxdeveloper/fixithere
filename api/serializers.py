@@ -42,12 +42,13 @@ class RepairCategorySerializer(serializers.ModelSerializer):
 class UserProfileSerializer(serializers.ModelSerializer):
     repair_categories = serializers.PrimaryKeyRelatedField(write_only=True, queryset=Car.objects.all(), many=True)
     _repair_categories = RepairCategorySerializer(many=True, read_only=True, source='repair_categories')
+    complete_offers_count = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = User
         fields = [
             'id', 'email', 'name', 'role', 'phone', 'whatsapp', 'telegram', 'vk', 'instagram', 'site', 'avatar',
-            'repair_categories', '_repair_categories'
+            'repair_categories', '_repair_categories', 'complete_offers_count'
         ]
 
 

@@ -21,6 +21,7 @@ from .aggregations import annotate_comments_likes_count
 from .aggregations import annotate_repair_offers_views_count
 from .aggregations import annotate_repair_offers_my_my_accept_free
 from .aggregations import annotate_repair_offers_completed
+from .aggregations import annotate_masters_offers_count
 
 from channels.layers import get_channel_layer
 
@@ -193,6 +194,11 @@ class MastersViewSet(CustomReadOnlyModelViewSet):
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['name', 'repair_categories']
     ordering_fields = []
+
+    def get_queryset(self):
+        queryset = self.queryset
+        queryset = annotate_masters_offers_count(queryset)
+        return queryset
 
 
 # repair offers
@@ -410,9 +416,9 @@ class RepairOfferViewSet(CustomModelViewSet):
         if request.user.id == instance.owner_id:
             raise BadRequest('Нельзя откликаться на свои же офферы')
         Subscription.check_action(request.user, 'can_take_offers')
+        instance.canceled_masters.remove(instance.pk)
         if has_offer_chat(instance, request.user):
-            raise BadRequest('По данному офферу у вас уже создан чат')
-
+            return Response({'detail': 'По данному офферу у вас уже создан чат'}, status=200)
         chat = Chat(object_id=offer_id, object_type='repair_offer', created_user=request.user, private=True)
         chat.save()
         chat.participants.add(request.user.id, instance.owner_id)
@@ -447,6 +453,17 @@ class RepairOfferViewSet(CustomModelViewSet):
             text = '👋'
         chat.message_set.create(user=request.user, text=text)
         return Response({'detail': 'Чат успешно создан'}, status=200)
+
+    @transaction.atomic
+    @action(methods=['post'], detail=True)
+    def refuse(self, request, pk):
+        instance = self.get_object()
+        if request.user.id == instance.master_id:
+            instance.canceled_masters.add(request.user.id)
+            instance.master = None
+            instance.save()
+            return Response({'detail': 'Отказ от оффера успешно выполнен'}, status=200)
+        raise BadRequest('Вы не назначены мастером на данный оффер')
 
 
 class PublicRepairOfferViewSet(CustomReadOnlyModelViewSet):

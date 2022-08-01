@@ -50,3 +50,9 @@ def annotate_repair_offers_completed(queryset):
         When(Q(owner_grade__isnull=False, master_grade__isnull=False), then=Value(True, BooleanField())),
         default=Value(False, BooleanField())
     ))
+
+
+def annotate_masters_offers_count(queryset):
+    return queryset.annotate(
+        complete_offers_count=Count('accepted_offers', filter=Q(accepted_offers__owner_grade__isnull=False))
+    )

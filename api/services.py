@@ -194,6 +194,9 @@ def set_master(instance, master_id):
         instance.master = None
         instance.save()
     elif User.objects.filter(role='master', id=master_id).exists():
+        if instance.canceled_masters.filter(id=master_id).exists():
+            raise BadRequest('Мастер отказался от данного оффера. Чтобы назначить его снова, '
+                             'попросите его заново откликнуться на ваш оффер')
         instance.master_id = master_id
         instance.save()
     else:

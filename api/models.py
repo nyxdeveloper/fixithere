@@ -260,6 +260,8 @@ class RepairOffer(models.Model):
                                         verbose_name='Отзыв мастера', related_name='masters_offer')
     views = models.ManyToManyField('api.User', blank=True, verbose_name='Просмотрели')
     created = models.DateTimeField(auto_now_add=True, editable=False, verbose_name='Время создания')
+    canceled_masters = models.ManyToManyField('api.User', related_name='canceled_offers', blank=True,
+                                              verbose_name='Отказавшиеся мастера')
 
     def __str__(self):
         return self.title
