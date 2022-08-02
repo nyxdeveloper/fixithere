@@ -15,7 +15,6 @@ from .exceptions import BadRequest
 from .models import User, OTC
 from django.db.models import Q
 from django.contrib.postgres.search import SearchVector
-from django.contrib.postgres.search import SearchQuery
 
 from .models import Chat
 
@@ -223,3 +222,14 @@ def subscription_plans_base_filter(queryset):
 
 def has_offer_chat(repair_offer, user):
     return Chat.objects.filter(object_id=repair_offer.id, object_type='repair_offer', participants=user).exists()
+
+
+def create_helpdesk_chat_for_user(user):
+    hd_chat = user.chats.create(
+        object_id=str(user.pk),
+        object_type='helpdesk',
+        created_user=user,
+        private=True
+    )
+    hd_chat.participants.add(user.id)
+    return hd_chat

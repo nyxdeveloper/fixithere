@@ -83,6 +83,7 @@ from .services import set_master
 from .services import offers_base_filter
 from .services import subscription_plans_base_filter
 from .services import has_offer_chat
+from .services import create_helpdesk_chat_for_user
 
 from .exceptions import AuthenticationFailed
 from .exceptions import Forbidden
@@ -669,6 +670,14 @@ class ChatReadOnlyViewSet(CustomReadOnlyModelViewSet):
     def get_queryset(self):
         return self.queryset.filter(participants=self.request.user)
 
+    @action(methods=['get'], detail=False)
+    def helpdesk_chat(self, request):
+        try:
+            serializer = self.get_serializer(request.user.chats.get(object_type='helpdesk', object_id=request.user.id))
+        except Chat.DoesNotExist:
+            serializer = self.get_serializer(create_helpdesk_chat_for_user(request.user))
+        return Response(serializer.data)
+
 
 class MessageViewSet(CustomModelViewSet):
     queryset = Message.objects.filter(deleted=False)
@@ -759,8 +768,8 @@ class FAQTopicReadOnlyViewSet(CustomReadOnlyModelViewSet):
 
 
 class FAQContentReadOnlyViewSet(CustomReadOnlyModelViewSet):
-    queryset = FAQTopic.objects.all()
-    serializer_class = FAQTopicSerializer
+    queryset = FAQContent.objects.all()
+    serializer_class = FAQContentSerializer
     pagination_class = StandardPagination
     permission_classes = [IsAuthenticated]
     filter_backends = [SearchFilter, OrderingFilter]
