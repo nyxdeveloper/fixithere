@@ -20,7 +20,7 @@ from .views import RepairCategoryReadOnlyViewSet
 from .views import OfferImageReadOnlyViewSet
 from .views import GradeReadOnlyViewSet
 from .views import GradePhotoReadOnlyViewSet
-from .views import CommentReadOnlyViewSet
+from .views import CommentViewSet
 from .views import CommentMediaReadOnlyViewSet
 from .views import RepairOfferViewSet
 from .views import PublicRepairOfferViewSet
@@ -42,7 +42,7 @@ router.register('categories', RepairCategoryReadOnlyViewSet)
 router.register('offer_images', OfferImageReadOnlyViewSet)
 router.register('grades', GradeReadOnlyViewSet)
 router.register('grade_photos', GradePhotoReadOnlyViewSet)
-router.register('comments', CommentReadOnlyViewSet)
+router.register('comments', CommentViewSet)
 router.register('comments_media', CommentMediaReadOnlyViewSet)
 router.register('offers', RepairOfferViewSet)
 router.register('public_offers', PublicRepairOfferViewSet)

@@ -228,26 +228,29 @@ class GradePhoto(models.Model):
 class Comment(models.Model):
     offer = models.ForeignKey('api.RepairOffer', on_delete=models.CASCADE, related_name='comments',
                               verbose_name='Оффер')
-    reply = models.ForeignKey('api.User', on_delete=models.SET_NULL, null=True, default=None,
+    reply = models.ForeignKey('api.Comment', on_delete=models.SET_NULL, null=True, default=None,
                               related_name='comments_replies', verbose_name='Кому ответить')
     user = models.ForeignKey('api.User', on_delete=models.CASCADE, related_name='comments',
                              verbose_name='Пользователь')
     text = models.TextField(verbose_name='Текст')
-    users_liked = models.ManyToManyField('api.User', blank=True, verbose_name='Лайкнули')
+    users_liked = models.ManyToManyField('api.User', related_name='liked_comments', blank=True, verbose_name='Лайкнули')
     created = models.DateTimeField(auto_now_add=True, editable=False, verbose_name='Время создания')
 
     def __str__(self):
         return f'{self.user.name}: {self.text}'
 
     def reply_str(self):
-        return f'@{self.reply.get_short_name()}'
+        if not self.reply:
+            return ''
+        if len(self.reply.text) > 50:
+            return self.reply.text[:47] + '...'
+        return self.reply.text
 
     @property
     def cut_text(self):
         if len(self.text) > 150:
             return self.text[:147] + "..."
-        else:
-            return self.text
+        return self.text
 
     class Meta:
         verbose_name = 'Комментарий'

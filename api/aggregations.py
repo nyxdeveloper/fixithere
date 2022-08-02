@@ -80,3 +80,7 @@ def annotate_masters_statistic(queryset):
 
 def annotate_masters_is_trusted(queryset, user):
     return queryset.annotate(is_trusted=Exists(user.trusted_masters.filter(pk=OuterRef('pk'))))
+
+
+def annotate_comment_is_liked(queryset, user):
+    return queryset.annotate(is_liked=Exists(user.liked_comments.filter(pk=OuterRef('pk'))))

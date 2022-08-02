@@ -116,11 +116,23 @@ class GradePhotoSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class CommentMediaSerializer(serializers.ModelSerializer):
+    extension = serializers.CharField(read_only=True)
+    filename = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = CommentMedia
+        fields = '__all__'
+
+
 class CommentSerializer(serializers.ModelSerializer):
-    _user = UserProfileSerializer(read_only=True, source='user')
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    _user = UserProfileSimpleSerializer(read_only=True, source='user')
     users_liked = serializers.SerializerMethodField()
     reply_str = serializers.SerializerMethodField()
     cut_text = serializers.CharField(read_only=True)
+    media = CommentMediaSerializer(read_only=True, many=True)
+    is_liked = serializers.BooleanField(read_only=True)
 
     def get_users_liked(self, instance):
         if hasattr(instance, 'users_liked_count'):
@@ -132,15 +144,6 @@ class CommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
-        fields = '__all__'
-
-
-class CommentMediaSerializer(serializers.ModelSerializer):
-    extension = serializers.CharField(read_only=True)
-    filename = serializers.CharField(read_only=True)
-
-    class Meta:
-        model = CommentMedia
         fields = '__all__'
 
 

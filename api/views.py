@@ -26,6 +26,7 @@ from .aggregations import annotate_repair_offers_my_my_accept_free
 from .aggregations import annotate_repair_offers_completed
 from .aggregations import annotate_masters_statistic
 from .aggregations import annotate_masters_is_trusted
+from .aggregations import annotate_comment_is_liked
 
 from channels.layers import get_channel_layer
 
@@ -371,7 +372,7 @@ class GradePhotoReadOnlyViewSet(CustomReadOnlyModelViewSet):
     filterset_key_fields = ['grade']
 
 
-class CommentReadOnlyViewSet(CustomReadOnlyModelViewSet):
+class CommentViewSet(CustomModelViewSet):
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
     pagination_class = StandardPagination
@@ -384,7 +385,45 @@ class CommentReadOnlyViewSet(CustomReadOnlyModelViewSet):
     def get_queryset(self):
         queryset = self.queryset
         queryset = annotate_comments_likes_count(queryset)  # annotate 'users_liked_count' variable
+        queryset = annotate_comment_is_liked(queryset, self.request.user)  # annotate 'is_liked' variable
         return queryset
+
+    def perform_destroy(self, instance):
+        if instance.user_id != self.request.user.id:
+            raise Forbidden('Вы не можете удалить чужой комментарий')
+        return super(CommentViewSet, self).perform_destroy(instance)
+
+    def perform_update(self, serializer):
+        if self.get_object().user_id != self.request.user.id:
+            raise Forbidden
+        return super(CommentViewSet, self).perform_update(serializer)
+
+    @action(methods=['post'], detail=True)
+    def like(self, request, pk):
+        instance = self.get_object()
+        if instance.users_liked.filter(id=request.user.id).exists():
+            instance.users_liked.remove(request.user.id)
+            return Response({'like': False}, status=200)
+        else:
+            instance.users_liked.add(request.user.id)
+            return Response({'like': True}, status=200)
+
+    @transaction.atomic
+    def perform_create(self, serializer):
+        serializer.save()
+        if serializer.instance.offer.private:
+            raise BadRequest('На приватный оффер нельзя оставить комментарий')
+        media_list = self.request.FILES.getlist('media')
+        if len(media_list) > 10:
+            raise BadRequest('К комментарию нельзя прикрепить более 10 файлов')
+        for media in media_list:
+            size_mb = media.size / 1024 / 1024
+            if size_mb > settings.MAX_COMMENT_MEDIA_SIZE_MB:
+                raise BadRequest('Размер загружаемых фотографий не должен превышать 5 Мб')
+            ext = media.name.split('.')[-1]
+            if ext not in ['png', 'jpg', 'jpeg']:
+                raise BadRequest('Загружаемые файлы должны иметь один из перечисленных форматов: .png, .jpg, .jpeg')
+            serializer.instance.media.create(file=media)
 
 
 class CommentMediaReadOnlyViewSet(CustomReadOnlyModelViewSet):
