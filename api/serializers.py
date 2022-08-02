@@ -18,6 +18,9 @@ from .models import Message
 from .models import MessageMedia
 from .models import SubscriptionPlan
 from .models import SubscriptionAction
+from .models import FAQ
+from .models import FAQTopic
+from .models import FAQContent
 
 
 class CarBrandSerializer(serializers.ModelSerializer):
@@ -246,3 +249,21 @@ class SubscriptionSerializer(serializers.Serializer):
     plan = serializers.CharField(read_only=True)
     value = serializers.CharField(read_only=True)
     active = serializers.BooleanField(read_only=True)
+
+
+class FAQSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FAQ
+        fields = '__all__'
+
+
+class FAQTopicSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FAQTopic
+        fields = '__all__'
+
+
+class FAQContentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FAQContent
+        fields = '__all__'

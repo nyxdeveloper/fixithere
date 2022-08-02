@@ -11,6 +11,7 @@ from .exceptions import Forbidden
 from .signals import file_model_delete
 from .signals import img_model_delete
 from .signals import user_avatar_delete
+from .signals import faq_content_background_delete
 from .signals import create_helpdesk_chat
 
 from .exceptions import SelfAppointedOffer
@@ -548,12 +549,107 @@ class SubscriptionFreeze(models.Model):
         verbose_name_plural = 'Заморозки'
 
 
+class FAQ(models.Model):
+    def img_upload(self, filename):
+        return os.path.join('faqs', (self.pk), filename)
+
+    title = models.CharField(max_length=250, verbose_name='Заголовок')
+    key = models.CharField(max_length=250, verbose_name='Ключ', unique=True)
+    topic = models.ForeignKey('api.FAQTopic', on_delete=models.SET_NULL, null=True, default=None, verbose_name='Тема')
+    img = models.ImageField(upload_to=img_upload, verbose_name='Картинка')
+    actual = models.BooleanField(default=True, verbose_name='ктуально')
+
+    def __str__(self):
+        return self.title
+
+    class Meta:
+        verbose_name = 'FAQ'
+        verbose_name_plural = 'FAQ'
+
+
+class FAQContent(models.Model):
+    def img_upload(self, filename):
+        return os.path.join('faqs', str(self.faq_id), 'content', str(self.pk), filename)
+
+    def background_img_upload(self, filename):
+        return os.path.join('faqs', str(self.faq_id), 'content', str(self.pk), 'background', filename)
+
+    ALIGN = (
+        ('left-top', 'Слева вверху'),
+        ('left-center', 'Слева по центру'),
+        ('left-bottom', 'Слева внизу'),
+        ('right-top', 'Справа вверху'),
+        ('right-center', 'Справа по центру'),
+        ('right-bottom', 'Справа внизу'),
+        ('center-top', 'По центру вверху'),
+        ('center-center', 'По центру'),
+        ('center-bottom', 'По центру внизу'),
+    )
+    FILL = (
+        ('auto', 'Авто'),
+        ('cover', 'Поверх'),
+        ('contain', 'Заполнить пространство'),
+    )
+
+    faq = models.ForeignKey('api.FAQ', on_delete=models.CASCADE, related_name='content', verbose_name='FAQ')
+    position = models.PositiveIntegerField(verbose_name='Позиция', default=1)
+    title = models.CharField(max_length=250, verbose_name='Заголовок', blank=True, default=None, null=True)
+    text = models.TextField(verbose_name='Текст', blank=True, default=None, null=True)
+    img = models.ImageField(verbose_name='Картинка', blank=True, default=None, null=True)
+
+    text_align = models.CharField(max_length=13, choices=ALIGN, default='left-top', verbose_name='Положение текста')
+    title_align = models.CharField(max_length=13, choices=ALIGN, default='left-top', verbose_name='Положение заголовка')
+
+    text_bold = models.BooleanField(default=False, verbose_name='Жирный текст')
+    text_italic = models.BooleanField(default=False, verbose_name='Курсивный текст')
+    text_underlined = models.BooleanField(default=False, verbose_name='Подчеркнутый текст')
+
+    title_bold = models.BooleanField(default=True, verbose_name='Жирный текст')
+    title_italic = models.BooleanField(default=False, verbose_name='Курсивный текст')
+    title_underlined = models.BooleanField(default=False, verbose_name='Подчеркнутый текст')
+
+    text_color = models.CharField(max_length=7, default='#000000', verbose_name='Цвет текста')
+    title_color = models.CharField(max_length=7, default='#000000', verbose_name='Цвет заголовка')
+
+    img_width = models.FloatField(default=None, null=True, verbose_name='Ширина картинки')
+    img_height = models.FloatField(default=None, null=True, verbose_name='Высота картинки')
+
+    background_color = models.CharField(max_length=7, default='#FFFFFF', verbose_name='Цвет фона')
+    background_img = models.ImageField(upload_to=background_img_upload, default=None, null=True,
+                                       verbose_name='Картинка фона')
+    background_img_fill = models.CharField(max_length=7, choices=FILL, default='auto', verbose_name='Заполнение фона')
+    background_blur = models.IntegerField(default=0, verbose_name='Блюр фона')
+
+    def __str__(self):
+        return f'{self.faq.title}: {self.title}'
+
+    class Meta:
+        verbose_name = 'Контент FAQ'
+        verbose_name_plural = 'Контент FAQ'
+        ordering = ['position']
+
+
+class FAQTopic(models.Model):
+    name = models.CharField(max_length=250, verbose_name='Название')
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = 'Тема'
+        verbose_name_plural = 'Темы FAQ'
+
+
 post_delete.connect(file_model_delete, sender=CommentMedia)
 post_delete.connect(file_model_delete, sender=MessageMedia)
 post_delete.connect(img_model_delete, sender=CarBrand)
 post_delete.connect(img_model_delete, sender=OfferImage)
 post_delete.connect(img_model_delete, sender=GradePhoto)
 post_delete.connect(img_model_delete, sender=SubscriptionPlan)
+post_delete.connect(img_model_delete, sender=UserReport)
+post_delete.connect(img_model_delete, sender=FAQ)
+post_delete.connect(img_model_delete, sender=FAQContent)
 post_delete.connect(user_avatar_delete, sender=User)
+post_delete.connect(faq_content_background_delete, sender=FAQContent)
 
 post_save.connect(create_helpdesk_chat, sender=User)

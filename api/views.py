@@ -45,6 +45,9 @@ from .models import Chat
 from .models import Message
 from .models import SubscriptionPlan
 from .models import Subscription
+from .models import FAQ
+from .models import FAQTopic
+from .models import FAQContent
 
 from .serializers import CarBrandSerializer
 from .serializers import CarSerializer
@@ -62,6 +65,9 @@ from .serializers import RepairOfferSerializer
 from .serializers import SubscriptionPlanSerializer
 from .serializers import ChatSerializer
 from .serializers import MessageSerializer
+from .serializers import FAQSerializer
+from .serializers import FAQContentSerializer
+from .serializers import FAQTopicSerializer
 
 from .services import validate_registration_data
 from .services import register_user
@@ -721,3 +727,43 @@ class MessageViewSet(CustomModelViewSet):
         if serializer.instance.user_id != self.request.user.id:
             raise Forbidden('Вы не можете редактировать сообщение другого пользователя')
         return super(MessageViewSet, self).perform_update(serializer)
+
+
+class FAQReadOnlyViewSet(CustomReadOnlyModelViewSet):
+    queryset = FAQ.objects.filter(actual=True)
+    serializer_class = FAQSerializer
+    pagination_class = StandardPagination
+    permission_classes = [IsAuthenticated]
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ['title', 'topic__name']
+    ordering_fields = []
+    filterset_key_fields = ['topic']
+
+    @action(methods=['get'], detail=False)
+    def get_by_key(self, request):
+        try:
+            serializer = self.get_serializer(self.get_queryset().filter(key=request.query_params.get('key')))
+            return Response(serializer.data)
+        except FAQ.DoesNotExist:
+            return Response({'detail': 'FAQ не найден'}, status=404)
+
+
+class FAQTopicReadOnlyViewSet(CustomReadOnlyModelViewSet):
+    queryset = FAQTopic.objects.all()
+    serializer_class = FAQTopicSerializer
+    pagination_class = StandardPagination
+    permission_classes = [IsAuthenticated]
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ['name']
+    ordering_fields = []
+
+
+class FAQContentReadOnlyViewSet(CustomReadOnlyModelViewSet):
+    queryset = FAQTopic.objects.all()
+    serializer_class = FAQTopicSerializer
+    pagination_class = StandardPagination
+    permission_classes = [IsAuthenticated]
+    filter_backends = [SearchFilter, OrderingFilter]
+    filterset_key_fields = ['faq']
+    search_fields = []
+    ordering_fields = ['position']

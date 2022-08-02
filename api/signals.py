@@ -13,6 +13,11 @@ def user_avatar_delete(sender, instance, **kwargs):
         instance.avatar.delete()
 
 
+def faq_content_background_delete(sender, instance, **kwargs):
+    if instance.background_img.name:
+        instance.background_img.delete()
+
+
 def create_helpdesk_chat(sender, instance, created, **kwargs):
     if created:
         hd_chat = instance.chats.create(

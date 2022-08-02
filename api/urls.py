@@ -27,6 +27,9 @@ from .views import PublicRepairOfferViewSet
 from .views import SubscriptionViewSet
 from .views import ChatReadOnlyViewSet
 from .views import MessageViewSet
+from .views import FAQReadOnlyViewSet
+from .views import FAQTopicReadOnlyViewSet
+from .views import FAQContentReadOnlyViewSet
 
 router = DefaultRouter()
 
@@ -46,6 +49,9 @@ router.register('public_offers', PublicRepairOfferViewSet)
 router.register('subscription', SubscriptionViewSet)
 router.register('chats', ChatReadOnlyViewSet)
 router.register('messages', MessageViewSet)
+router.register('faq', FAQReadOnlyViewSet)
+router.register('faq_topics', FAQTopicReadOnlyViewSet)
+router.register('faq_content', FAQContentReadOnlyViewSet)
 
 urlpatterns = [
     path('registration/', EmailRegistration.as_view()),
