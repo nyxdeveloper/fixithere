@@ -684,17 +684,28 @@ class MessageViewSet(CustomModelViewSet):
     @transaction.atomic
     def perform_create(self, serializer):
         serializer.save()
+
+        # сохраняем медиафайлы
         for media in self.request.FILES.getlist('media'):
             size_mb = media.size / 1024 / 1024
             if size_mb > settings.MAX_MESSAGE_MEDIA_SIZE_MB:
                 raise BadRequest('Размер загружаемых файлов не должен превышать 5 Мб')
             serializer.instance.media.create(file=media)
+
+        # указываем на изменение чата
+        chat = serializer.instance.chat
+        chat.changed = timezone.now()
+        chat.save()
+
+        # отправляем сообщение в сокет
         send_serializer = self.get_serializer(serializer.instance)
         channel_layer = get_channel_layer()
         message_text_data = json.dumps(send_serializer.data, cls=encoders.JSONEncoder, ensure_ascii=False)
         async_to_sync(channel_layer.group_send)(
             f"chat-{serializer.instance.chat_id}", {"type": "chat_message", "message": message_text_data}
         )
+
+        # отправляем пуш-уведомления
         for p_id in serializer.instance.chat.participants.exclude(id=self.request.user.id).values_list('id', flat=True):
             async_to_sync(channel_layer.group_send)(
                 f"messages-{p_id}", {"type": "new_message", "message": message_text_data}
