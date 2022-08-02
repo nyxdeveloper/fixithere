@@ -1,6 +1,8 @@
+import datetime
 import typing
 
-from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
+from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet, GenericViewSet
+from rest_framework.mixins import CreateModelMixin
 from rest_framework.decorators import action
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
@@ -27,6 +29,7 @@ from .aggregations import annotate_masters_statistic
 from channels.layers import get_channel_layer
 
 from .models import User
+from .models import UserReport
 from .models import RequestForCooperation
 from .models import CarBrand
 from .models import Car
@@ -45,6 +48,7 @@ from .models import Subscription
 from .serializers import CarBrandSerializer
 from .serializers import CarSerializer
 from .serializers import UserProfileSerializer
+from .serializers import UserReportSerializer
 from .serializers import RequestForCooperationSerializer
 from .serializers import RepairCategorySerializer
 from .serializers import OfferImageSerializer
@@ -241,6 +245,22 @@ class RequestForCooperationViewSet(CustomModelViewSet):
         instance.responded = True
         instance.save()
         return Response({'detail': 'Сотрудничество отклонено'})
+
+
+class UserReportViewSet(GenericViewSet, CreateModelMixin):
+    queryset = UserReport.objects.all()
+    serializer_class = UserReportSerializer
+    pagination_class = StandardPagination
+    permission_classes = [IsAuthenticated]
+
+    @transaction.atomic
+    def perform_create(self, serializer):
+        serializer.save()
+        if self.get_queryset().filter(
+                from_user=self.request.user,
+                to_user=serializer.instance.to_user,
+                created__gte=timezone.now() - datetime.timedelta(hours=12)).exists():
+            raise BadRequest('На одного пользователя можно отправлять только одну жалобу раз в 12 часов')
 
 
 # repair offers

@@ -90,6 +90,26 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.email
 
 
+class UserReport(models.Model):
+    def img_upload(self, filename):
+        return os.path.join('reports', str(self.pk), filename)
+
+    reason = models.TextField(verbose_name='Причина')
+    img = models.ImageField(upload_to=img_upload, verbose_name='Фото', blank=True, default=None, null=True)
+    from_user = models.ForeignKey('api.User', on_delete=models.CASCADE, verbose_name='Пользователь',
+                                  related_name='send_reports')
+    to_user = models.ForeignKey('api.User', on_delete=models.CASCADE, verbose_name='Пользователь',
+                                related_name='received_reports')
+    created = models.DateTimeField(auto_now_add=True, verbose_name='Время отправки')
+
+    def __str__(self):
+        return f'{self.from_user.name} --> {self.to_user}'
+
+    class Meta:
+        verbose_name = 'Репорт'
+        verbose_name_plural = 'Репорты'
+
+
 class OTC(models.Model):
     code = models.CharField(max_length=100, verbose_name='Код')
     key = models.CharField(max_length=100, verbose_name='Ключ')

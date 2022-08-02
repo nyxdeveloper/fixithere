@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.conf import settings
 
 from .models import User
+from .models import UserReport
 from .models import RequestForCooperation
 from .models import CarBrand
 from .models import Car
@@ -65,6 +66,14 @@ class UserProfileSimpleSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'name', 'avatar']
+
+
+class UserReportSerializer(serializers.ModelSerializer):
+    from_user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+
+    class Meta:
+        model = UserReport
+        fields = '__all__'
 
 
 class RequestForCooperationSerializer(serializers.ModelSerializer):

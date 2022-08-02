@@ -12,6 +12,7 @@ from .views import ProfileCarsAPIView
 
 # View sets
 from .views import MastersViewSet
+from .views import UserReportViewSet
 from .views import RequestForCooperationViewSet
 from .views import CarBrandReadOnlyViewSet
 from .views import CarReadOnlyViewSet
@@ -30,6 +31,7 @@ from .views import MessageViewSet
 router = DefaultRouter()
 
 router.register('masters', MastersViewSet)
+router.register('reports', UserReportViewSet)
 router.register('cooperation', RequestForCooperationViewSet)
 router.register('car_brands', CarBrandReadOnlyViewSet)
 router.register('cars', CarReadOnlyViewSet)
