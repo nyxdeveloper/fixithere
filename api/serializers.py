@@ -49,12 +49,13 @@ class UserProfileSerializer(serializers.ModelSerializer):
     # cooperation_count = serializers.IntegerField(read_only=True)
     # offer_complete_percent = serializers.FloatField(read_only=True)
     rating = serializers.FloatField(read_only=True)
+    is_trusted = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = User
         fields = [
             'id', 'email', 'name', 'role', 'phone', 'whatsapp', 'telegram', 'vk', 'instagram', 'site', 'avatar',
-            'repair_categories', '_repair_categories', 'complete_offers_count', 'rating'
+            'repair_categories', '_repair_categories', 'complete_offers_count', 'rating', 'is_trusted'
         ]
 
 

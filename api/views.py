@@ -25,6 +25,7 @@ from .aggregations import annotate_repair_offers_views_count
 from .aggregations import annotate_repair_offers_my_my_accept_free
 from .aggregations import annotate_repair_offers_completed
 from .aggregations import annotate_masters_statistic
+from .aggregations import annotate_masters_is_trusted
 
 from channels.layers import get_channel_layer
 
@@ -200,12 +201,14 @@ class MastersViewSet(CustomReadOnlyModelViewSet):
     pagination_class = StandardPagination
     permission_classes = [IsAuthenticated]
     filter_backends = [SearchFilter, OrderingFilter]
+    filterset_key_fields = ['is_trusted']
     search_fields = ['name', 'repair_categories']
     ordering_fields = []
 
     def get_queryset(self):
         queryset = self.queryset
         queryset = annotate_masters_statistic(queryset)
+        queryset = annotate_masters_is_trusted(queryset, self.request.user)
         return queryset
 
     @action(methods=['post'], detail=True)
@@ -215,6 +218,18 @@ class MastersViewSet(CustomReadOnlyModelViewSet):
         instance = self.get_object()
         RequestForCooperation.objects.create(requesting=request.user, responsible=instance)
         return Response({'detail': 'Запрос на сотрудничество успешно отправлен'}, status=200)
+
+    @action(methods=['post'], detail=True)
+    def add_to_trusted(self, request, pk):
+        instance = self.get_object()
+        request.user.trusted_masters.add(instance)
+        return Response({'detail': 'Мастер добавлен в доверенные'}, status=200)
+
+    @action(methods=['post'], detail=True)
+    def remove_from_trusted(self, request, pk):
+        instance = self.get_object()
+        request.user.trusted_masters.remove(instance)
+        return Response({'detail': 'Мастер удален из доверенных'}, status=200)
 
 
 class RequestForCooperationViewSet(CustomModelViewSet):

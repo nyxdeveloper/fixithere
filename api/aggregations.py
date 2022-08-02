@@ -5,6 +5,7 @@ from django.db.models import Count
 from django.db.models import Case
 from django.db.models import When
 from django.db.models import Value
+from django.db.models import Exists
 from django.db.models import Sum
 from django.db.models import OuterRef
 from django.db.models import Subquery
@@ -75,3 +76,7 @@ def annotate_masters_statistic(queryset):
         #     output_field=FloatField()
         # )
     )
+
+
+def annotate_masters_is_trusted(queryset, user):
+    return queryset.annotate(is_trusted=Exists(user.trusted_masters.filter(pk=OuterRef('pk'))))
