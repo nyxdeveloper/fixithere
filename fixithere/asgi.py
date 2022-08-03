@@ -21,6 +21,7 @@ application = ProtocolTypeRouter({
         URLRouter([
             path('ws/chats/<int:pk>/', consumers.ChatConsumer.as_asgi()),
             path('ws/messages/', consumers.UserMessagesConsumer.as_asgi()),
+            path('ws/subscription_permissions/', consumers.SubscriptionPermissionsConsumer.as_asgi()),
         ])
     ),
 })

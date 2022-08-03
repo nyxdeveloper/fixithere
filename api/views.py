@@ -690,9 +690,19 @@ class SubscriptionViewSet(CustomReadOnlyModelViewSet):
     def pay_notifications(self, request):
         payment = request.data.get("object")
         if payment["status"] == "succeeded":
-            Subscription.objects.filter(payment_id=payment["id"]).update(active=True)
+            sub = Subscription.objects.filter(payment_id=payment["id"])
+            sub.active = True
+            sub.save()
+            channel_layer = get_channel_layer()
+            permissions = sub.plan.get_permissions()
+            permissions_text_data = json.dumps(permissions, cls=encoders.JSONEncoder, ensure_ascii=False)
+            async_to_sync(channel_layer.group_send)(
+                f"subscription-permissions-{sub.user_id}",
+                {"type": "change_permissions", "message": permissions_text_data}
+            )
         else:
             Subscription.objects.filter(payment_id=payment["id"]).delete()
+
         return Response(status=200)
 
     @action(methods=['get'], detail=False)
