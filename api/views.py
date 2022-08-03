@@ -85,6 +85,7 @@ from .services import offers_base_filter
 from .services import subscription_plans_base_filter
 from .services import has_offer_chat
 from .services import create_helpdesk_chat_for_user
+from .services import get_user_subscription_plan
 
 from .exceptions import AuthenticationFailed
 from .exceptions import Forbidden
@@ -693,6 +694,15 @@ class SubscriptionViewSet(CustomReadOnlyModelViewSet):
         else:
             Subscription.objects.filter(payment_id=payment["id"]).delete()
         return Response(status=200)
+
+    @action(methods=['get'], detail=False)
+    def subscription_permissions(self, request):
+        sub = Subscription.get_active(request.user)
+        if sub:
+            permissions = sub.plan.get_permissions()
+        else:
+            permissions = self.get_queryset().get(default=True).get_permissions()
+        return Response(permissions)
 
 
 class ChatReadOnlyViewSet(CustomReadOnlyModelViewSet):

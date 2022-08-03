@@ -442,6 +442,12 @@ class SubscriptionPlan(models.Model):
             self.default = True
         return super(SubscriptionPlan, self).save(*args, **kwargs)
 
+    def get_permissions(self):
+        actions = SubscriptionAction.objects.filter(not_affect=False)
+        actions = actions.annotate(enable=models.Exists(self.actions.filter(id=models.OuterRef('pk'))))
+        actions = actions.values('code', 'enable')
+        return {i['code']: i['enable'] for i in actions}
+
     class Meta:
         verbose_name = 'План подписки'
         verbose_name_plural = 'Планы подписок'
@@ -451,6 +457,7 @@ class SubscriptionAction(models.Model):
     name = models.CharField(max_length=100)
     value = models.CharField(max_length=100)
     code = models.CharField(max_length=100, unique=True)
+    not_affect = models.BooleanField(default=False, verbose_name='Информативный/Не влияет на работу')
     description = models.TextField(blank=True)
 
     def __str__(self):

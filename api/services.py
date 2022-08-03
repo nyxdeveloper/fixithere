@@ -17,6 +17,8 @@ from django.db.models import Q
 from django.contrib.postgres.search import SearchVector
 
 from .models import Chat
+from .models import Subscription
+from .models import SubscriptionPlan
 
 
 def get_user_by_email(email):
@@ -233,3 +235,10 @@ def create_helpdesk_chat_for_user(user):
     )
     hd_chat.participants.add(user.id)
     return hd_chat
+
+
+def get_user_subscription_plan(user):
+    sub = Subscription.get_active(user)
+    if sub:
+        return sub.plan
+    return subscription_plans_base_filter(SubscriptionPlan.objects.all()).get(default=True)
