@@ -11,7 +11,11 @@ from django.db.models import OuterRef
 from django.db.models import Subquery
 from django.db.models import Q
 from django.db.models import F
+from django.utils import timezone
 from .models import Message
+from .models import Subscription
+from .models import SubscriptionPlan
+from .models import SubscriptionAction
 
 
 def annotate_comments_likes_count(queryset):
@@ -84,3 +88,27 @@ def annotate_masters_is_trusted(queryset, user):
 
 def annotate_comment_is_liked(queryset, user):
     return queryset.annotate(is_liked=Exists(user.liked_comments.filter(pk=OuterRef('pk'))))
+
+
+def filter_users_by_subscription_action_code(queryset, action_code):
+    now = timezone.now().date()
+    if not SubscriptionAction.objects.filter(code=action_code).exists():
+        return queryset
+    user_sub = Subscription.objects.filter(
+        user=OuterRef('pk'),
+        active=True,
+        start__lte=now,
+        expiration_date__gt=now
+    ).order_by('-start')
+    return queryset.annotate(
+        active_subscription_exist=Exists(user_sub),
+        current_plan_id=Case(
+            When(Q(active_subscription_exist=True), then=Subquery(user_sub.values('plan__id')[:1])),
+            default=SubscriptionPlan.objects.get(default=True).id,
+            output_field=IntegerField()
+        )
+    ).annotate(**{
+        action_code + '__permitted': Exists(
+            SubscriptionAction.objects.filter(code=action_code, subscriptionplan=OuterRef('current_plan_id'))
+        )
+    })

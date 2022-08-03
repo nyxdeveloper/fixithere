@@ -27,6 +27,7 @@ from .aggregations import annotate_repair_offers_completed
 from .aggregations import annotate_masters_statistic
 from .aggregations import annotate_masters_is_trusted
 from .aggregations import annotate_comment_is_liked
+from .aggregations import filter_users_by_subscription_action_code
 
 from channels.layers import get_channel_layer
 
@@ -85,7 +86,7 @@ from .services import offers_base_filter
 from .services import subscription_plans_base_filter
 from .services import has_offer_chat
 from .services import create_helpdesk_chat_for_user
-from .services import get_user_subscription_plan
+# from .services import get_user_subscription_plan
 
 from .exceptions import AuthenticationFailed
 from .exceptions import Forbidden
@@ -218,6 +219,8 @@ class MastersViewSet(CustomReadOnlyModelViewSet):
         queryset = self.queryset
         queryset = annotate_masters_statistic(queryset)
         queryset = annotate_masters_is_trusted(queryset, self.request.user)
+        queryset = filter_users_by_subscription_action_code(queryset, 'can_take_offers')
+        queryset = queryset.filter(can_take_offers__permitted=True)
         return queryset
 
     @action(methods=['post'], detail=True)
@@ -287,7 +290,6 @@ class UserReportViewSet(GenericViewSet, CreateModelMixin):
             raise BadRequest('На одного пользователя можно отправлять только одну жалобу раз в 12 часов')
 
 
-# repair offers
 class CarBrandReadOnlyViewSet(CustomReadOnlyModelViewSet):
     queryset = CarBrand.objects.all()
     serializer_class = CarBrandSerializer
