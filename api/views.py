@@ -27,7 +27,7 @@ from .aggregations import annotate_repair_offers_completed
 from .aggregations import annotate_masters_statistic
 from .aggregations import annotate_masters_is_trusted
 from .aggregations import annotate_comment_is_liked
-from .aggregations import filter_users_by_subscription_action_code
+from .aggregations import annotate_user_subscription_action_permitted
 
 from channels.layers import get_channel_layer
 
@@ -219,7 +219,7 @@ class MastersViewSet(CustomReadOnlyModelViewSet):
         queryset = self.queryset
         queryset = annotate_masters_statistic(queryset)
         queryset = annotate_masters_is_trusted(queryset, self.request.user)
-        queryset = filter_users_by_subscription_action_code(queryset, 'can_take_offers')
+        queryset = annotate_user_subscription_action_permitted(queryset, 'can_take_offers')
         queryset = queryset.filter(can_take_offers__permitted=True)
         return queryset
 

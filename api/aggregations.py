@@ -90,7 +90,7 @@ def annotate_comment_is_liked(queryset, user):
     return queryset.annotate(is_liked=Exists(user.liked_comments.filter(pk=OuterRef('pk'))))
 
 
-def filter_users_by_subscription_action_code(queryset, action_code):
+def annotate_user_subscription_action_permitted(queryset, action_code):
     now = timezone.now().date()
     if not SubscriptionAction.objects.filter(code=action_code).exists():
         return queryset
